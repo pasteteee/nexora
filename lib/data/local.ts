@@ -8,6 +8,7 @@ import { ApiError } from "./api";
 import type { Canvas, CanvasElement, Profile, Role, Source, Workspace, WorkspaceCard } from "@/lib/types";
 import { TRASH_DAYS } from "@/lib/types";
 import { checkUpload } from "./upload-rules";
+import { demoDataUrl, imageSize, validateImage } from "./images";
 
 type User = Profile & { passHash: string; confirmed: boolean };
 type Token = { email: string; kind: "confirm" | "reset"; expires: number; used: boolean };
@@ -355,6 +356,15 @@ export const localData: DataApi = {
       touchWs(db, workspaceId);
       return pub(s);
     });
+  },
+  async uploadImage(workspaceId, file) {
+    requireWs(load(), workspaceId, "edit");
+    validateImage(file);
+    const { width, height } = await imageSize(file);
+    return { name: file.name, mime: file.type, naturalWidth: width, naturalHeight: height, dataUrl: await demoDataUrl(file) };
+  },
+  async imageUrl() {
+    throw new ApiError("В демо-режиме изображения хранятся в объекте", "not_found");
   },
   async deleteSource(id) {
     tx((db) => {

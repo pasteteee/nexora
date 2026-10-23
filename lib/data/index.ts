@@ -12,3 +12,6 @@ export const data: DataApi = demoMode ? localData : supabaseData;
 
 export { ApiError } from "./api";
 export { localAuth, consumeToken } from "./local";
+
+/** Ссылка на изображение холста из приватного хранилища */
+export const imageUrl = (path: string) => data.imageUrl(path);

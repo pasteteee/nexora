@@ -5,6 +5,7 @@ import { ApiError } from "./api";
 import type { Canvas, CanvasElement, Role, WorkspaceCard } from "@/lib/types";
 import { TRASH_DAYS } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { imageSize, safeName, validateImage } from "./images";
 
 type Row = Record<string, unknown>;
 const sb = () => supabaseBrowser();
@@ -64,6 +65,9 @@ async function nextPosition(workspaceId: string) {
     .is("deleted_at", null).order("position", { ascending: false }).limit(1));
   return ((r?.[0]?.position as number) ?? 0) + 1;
 }
+
+const IMAGES = "nexora-images";
+const signed = new Map<string, { url: string; until: number }>();
 
 const notYet = (what: string) => async (): Promise<never> => {
   throw new ApiError(`${what}: будет подключено в следующем спринте`, "network");
@@ -178,6 +182,23 @@ export const supabaseData: DataApi = {
   async deleteElements(ids) {
     if (!ids.length) return;
     check(await sb().from("elements").delete().in("id", ids));
+  },
+  async uploadImage(workspaceId, file) {
+    validateImage(file);
+    const { width, height } = await imageSize(file);
+    // оригинал без изменений; путь начинается с тетради — по нему проверяют политики бакета
+    const path = `${workspaceId}/${crypto.randomUUID()}/${safeName(file.name)}`;
+    const r = await sb().storage.from(IMAGES).upload(path, file, { contentType: file.type, upsert: false });
+    if (r.error) throw new ApiError("Не удалось загрузить изображение", "network");
+    return { name: file.name, mime: file.type, naturalWidth: width, naturalHeight: height, path };
+  },
+  async imageUrl(path) {
+    const hit = signed.get(path);
+    if (hit && hit.until > Date.now()) return hit.url;
+    const r = await sb().storage.from(IMAGES).createSignedUrl(path, 3600);
+    if (r.error || !r.data) throw new ApiError("Изображение недоступно", "not_found");
+    signed.set(path, { url: r.data.signedUrl, until: Date.now() + 50 * 60_000 });
+    return r.data.signedUrl;
   },
   listSources: notYet("Источники"),
   uploadSource: notYet("Источники"),

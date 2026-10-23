@@ -1,3 +1,4 @@
+import type { ImageContent } from "./images";
 import type { Canvas, CanvasElement, Profile, Source, WorkspaceCard } from "@/lib/types";
 
 /** Единый клиентский интерфейс данных. Реализации: local (демо) и supabase. */
@@ -38,6 +39,10 @@ export interface DataApi {
   listSources(workspaceId: string): Promise<Source[]>;
   uploadSource(workspaceId: string, file: File): Promise<Source>;
   deleteSource(id: string): Promise<void>;
+
+  /** Изображение для холста: хранилище тетради, не источник */
+  uploadImage(workspaceId: string, file: File): Promise<ImageContent>;
+  imageUrl(path: string): Promise<string>;
 }
 
 export class ApiError extends Error {
