@@ -96,6 +96,7 @@ export const supabaseData: DataApi = {
   },
   async createWorkspace(name) {
     const me = await uid();
+    // владельца-участника добавляет триггер bootstrap_workspace_owner
     const ws = check(await sb().from("workspaces")
       .insert({ owner_id: me, name: name?.trim() || "Новая тетрадь" }).select().single());
     // у новой тетради сразу есть первая страница
@@ -106,10 +107,11 @@ export const supabaseData: DataApi = {
     check(await sb().from("workspaces").update({ name: name.trim() }).eq("id", id));
   },
   async trashWorkspace(id) {
-    check(await sb().from("workspaces").update({ deleted_at: new Date().toISOString() }).eq("id", id));
+    // удаление и восстановление — только атомарные RPC (публикации отключаются в той же транзакции)
+    check(await sb().rpc("soft_delete_workspace", { p_workspace_id: id }));
   },
   async restoreWorkspace(id) {
-    check(await sb().from("workspaces").update({ deleted_at: null }).eq("id", id));
+    check(await sb().rpc("restore_workspace", { p_workspace_id: id }));
   },
 
   async listCanvases(workspaceId) {
@@ -138,7 +140,7 @@ export const supabaseData: DataApi = {
   },
   async duplicateCanvas(id) {
     // копирование целиком в одной транзакции — функция duplicate_canvas в БД
-    const newId = check(await sb().rpc("duplicate_canvas", { src: id })) as string;
+    const newId = check(await sb().rpc("duplicate_canvas", { p_canvas_id: id })) as string;
     return toCanvas(check(await sb().from("canvases").select("*").eq("id", newId).single()) as Row);
   },
   async trashCanvas(id) {

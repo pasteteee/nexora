@@ -5,8 +5,9 @@
 | Переменная | Где | Назначение |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | клиент + сервер | адрес проекта Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | клиент + сервер | публичный ключ, права ограничены RLS |
-| `SUPABASE_SERVICE_ROLE_KEY` | только сервер | фоновые задачи, журнал `ai_requests` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | клиент + сервер | публикуемый ключ `sb_publishable_…`, права ограничены RLS |
+| `SUPABASE_SECRET_KEY` | только сервер | фоновые задачи (`sb_secret_…`), журнал `ai_requests` |
+| `APP_URL`, `SOURCE_SIGNED_URL_TTL_SECONDS` | только сервер | адрес приложения, срок подписанной ссылки на файл |
 | `AI_PROVIDER`, `AI_API_KEY`, `EMBEDDINGS_API_KEY` | только сервер | адаптер ИИ (ADR-002) |
 | `MAX_UPLOAD_MB` и др. лимиты | сервер | меняются без правки кода (п. 4.2.6) |
 
@@ -14,7 +15,5 @@
 в браузере (localStorage). Это нужно для разработки интерфейса до подключения стенда.
 
 ## Supabase
-1. Создать проект, включить расширение `vector`.
-2. `supabase db push` — миграции из `supabase/migrations`.
-3. Выполнить `supabase/storage.sql` — приватные бакеты.
-4. Auth → SMTP: подключить внешний SMTP (встроенный только для тестов, п. 4.3.5).
+Стенд и почта описаны в [docs/environments.md](environments.md), база — в [supabase/README.md](../supabase/README.md).
+Миграции (включая приватный бакет `nexora-sources`): `supabase db push`.

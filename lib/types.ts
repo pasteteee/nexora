@@ -1,9 +1,9 @@
 export type Role = "owner" | "editor" | "viewer";
-export type BackgroundType = "plain" | "grid" | "dots" | "lines";
+export type BackgroundType = "plain" | "grid" | "dots" | "ruled";
 export type ElementType =
   | "text" | "note" | "image" | "formula" | "shape"
-  | "connector" | "node" | "source_link" | "source_fragment";
-export type SourceStatus = "uploading" | "queued" | "processing" | "ready" | "error" | "ocr_required";
+  | "connector" | "diagram_node" | "source" | "source_fragment" | "group";
+export type SourceStatus = "pending" | "processing" | "ready" | "error" | "requires_ocr";
 
 export interface Profile { id: string; email: string; displayName: string }
 

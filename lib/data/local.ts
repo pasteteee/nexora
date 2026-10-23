@@ -349,7 +349,7 @@ export const localData: DataApi = {
     return tx((db) => {
       const s: Source = {
         id: uid(), workspaceId, originalName: file.name, mimeType: file.type || "application/octet-stream",
-        size: file.size, status: "queued", errorMessage: null, createdAt: now(), dataUrl,
+        size: file.size, status: "pending", errorMessage: null, createdAt: now(), dataUrl,
       };
       db.sources.push(s);
       touchWs(db, workspaceId);

@@ -9,6 +9,6 @@ export const limits = {
   searchMinSimilarity: num(process.env.SEARCH_MIN_SIMILARITY, 0.3),
 };
 
-export const isSupabaseConfigured = Boolean(
-  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-);
+/** Ключи Supabase заданы и это не заглушка из .env.example — иначе демо-режим */
+const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
+export const isSupabaseConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && /^sb_publishable_/.test(key) && !key.includes("replace_me"));
