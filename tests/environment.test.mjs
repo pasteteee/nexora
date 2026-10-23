@@ -11,6 +11,13 @@ test("only the two approved public variables are accepted", () => {
     assert.throws(() => assertPublicEnvironment({ [name]: "private" }));
   }
 });
+test("Vercel system variables are accepted, credential-like names are not", () => {
+  assert.doesNotThrow(() => assertPublicEnvironment({ NEXT_PUBLIC_VERCEL_ENV: "preview", NEXT_PUBLIC_VERCEL_URL: "nexora-git-x.vercel.app", NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: "abc", NEXT_PUBLIC_VERCEL_OBSERVABILITY_CLIENT_CONFIG: "{}" }));
+  for (const name of ["NEXT_PUBLIC_VERCEL_AUTOMATION_BYPASS_SECRET", "NEXT_PUBLIC_VERCEL_TOKEN", "NEXT_PUBLIC_VERCEL_API_KEY"]) {
+    assert.throws(() => assertPublicEnvironment({ [name]: "private" }));
+  }
+  assert.throws(() => assertPublicEnvironment({ NEXT_PUBLIC_VERCEL_ENV: "sb_secret_0123456789abcdef" }));
+});
 test("private and legacy privileged keys cannot masquerade as a public key", () => {
   for (const key of ["sb_secret_0123456789abcdef", "service_role", "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.sig", "sb_publishable_replace_me"]) {
     assert.throws(() => publishableKey(key));
