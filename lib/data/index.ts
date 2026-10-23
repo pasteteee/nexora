@@ -4,10 +4,11 @@ import { isSupabaseConfigured } from "@/lib/config";
 import type { AuthApi, DataApi } from "./api";
 import { localAuth, localData } from "./local";
 import { supabaseAuth } from "./supabase-auth";
+import { supabaseData } from "./supabase-data";
 
 export const demoMode = !isSupabaseConfigured;
 export const auth: AuthApi = demoMode ? localAuth : supabaseAuth;
-export const data: DataApi = localData;
+export const data: DataApi = demoMode ? localData : supabaseData;
 
 export { ApiError } from "./api";
 export { localAuth, consumeToken } from "./local";
