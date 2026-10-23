@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { ChevronDown, Copy, FilePlus2, Home, Pencil, Trash2 } from "lucide-react";
 import { Group, IconButton, Menu, Sep, toast, type MenuItem } from "@/components/ui";
 import { data } from "@/lib/data";
+import { loadCamera, useEditor } from "@/lib/editor/store";
+import { Canvas as CanvasView } from "./Canvas";
 import type { Canvas, WorkspaceCard } from "@/lib/types";
 import s from "./editor.module.css";
 
@@ -15,6 +17,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
   const [missing, setMissing] = useState(false);
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
   const [tick, setTick] = useState(0);
+  const [ready, setReady] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -27,6 +30,22 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
       .catch(() => alive && setMissing(true));
     return () => { alive = false; };
   }, [workspaceId, canvasId, tick]);
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all([data.getCanvas(canvasId), data.listElements(canvasId), data.getWorkspace(workspaceId)])
+      .then(([c, els, w]) => {
+        if (!alive || !c || !w) return;
+        useEditor.getState().init({
+          canvasId, canEdit: w.role !== "viewer", els,
+          background: { type: c.backgroundType, spacing: c.backgroundSpacing },
+          camera: loadCamera(canvasId) ?? undefined,
+        });
+        setReady(canvasId);
+      })
+      .catch(() => alive && setMissing(true));
+    return () => { alive = false; };
+  }, [canvasId, workspaceId]);
 
   if (missing) notFound();
   const page = pages.find((c) => c.id === canvasId);
@@ -61,7 +80,8 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
   }
 
   return (
-    <main className={s.root} style={{ backgroundImage: "radial-gradient(var(--grid) 1.2px, transparent 1.2px)", backgroundSize: "24px 24px" }}>
+    <main className={s.root}>
+      {ready === canvasId && <CanvasView />}
       <div className={s.tl}>
         <Group>
           <IconButton tip="Мои тетради" onClick={() => router.push("/app")}><Home size={18} /></IconButton>
