@@ -10,8 +10,7 @@ export function PasswordField(props: { value: string; onChange(v: string): void;
     <div className={s.pass}>
       <Field
         type={show ? "text" : "password"}
-        placeholder={props.placeholder ?? "Пароль"}
-        aria-label={props.placeholder ?? "Пароль"}
+        label={props.placeholder ?? "Пароль"}
         autoComplete={props.autoComplete}
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}

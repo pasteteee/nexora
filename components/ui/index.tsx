@@ -42,17 +42,18 @@ export function Group({ children, vertical, className, ...rest }:
 export const Sep = () => <span className={s.sep} aria-hidden />;
 
 /* ---------- Button ---------- */
-type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" };
+type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger" };
 export function Button({ variant = "primary", className, ...rest }: BtnProps) {
-  const v = variant === "primary" ? s.primary : variant === "danger" ? s.dangerBtn : s.ghost;
+  const v = { primary: s.primary, secondary: s.secondary, ghost: s.ghost, danger: s.dangerBtn }[variant];
   return <button type="button" className={cx(s.btn, v, className)} {...rest} />;
 }
 
 /* ---------- Field ---------- */
-type FieldProps = InputHTMLAttributes<HTMLInputElement> & { error?: string; hint?: string };
-export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field({ error, hint, ...rest }, ref) {
+type FieldProps = InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string; hint?: string };
+export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field({ label, error, hint, ...rest }, ref) {
   return (
     <label className={s.field}>
+      {label && <span className={s.label}>{label}</span>}
       <input ref={ref} className={s.input} aria-invalid={!!error} {...rest} />
       {error ? <span className={s.err}>{error}</span> : hint ? <span className={s.hint}>{hint}</span> : null}
     </label>
@@ -84,6 +85,7 @@ export function Dialog({ open, title, children, actions, onClose }:
 /* ---------- Menu (контекстное и «⋯») ---------- */
 export type MenuItem =
   | { sep: true }
+  | { heading: string }
   | { label: string; icon?: ReactNode; kbd?: string; danger?: boolean; onSelect: () => void; hidden?: boolean };
 
 export function Menu({ x, y, items, onClose }: { x: number; y: number; items: MenuItem[]; onClose: () => void }) {
@@ -120,6 +122,8 @@ export function Menu({ x, y, items, onClose }: { x: number; y: number; items: Me
       {visible.map((it, i) =>
         "sep" in it ? (
           <div key={i} className={s.menuSep} />
+        ) : "heading" in it ? (
+          <div key={i} className={s.menuHeading}>{it.heading}</div>
         ) : (
           <button
             key={i}
@@ -128,7 +132,7 @@ export function Menu({ x, y, items, onClose }: { x: number; y: number; items: Me
             onClick={() => { onClose(); it.onSelect(); }}
           >
             {it.icon}
-            <span>{it.label}</span>
+            <span className={s.menuLabel}>{it.label}</span>
             {it.kbd && <kbd>{it.kbd}</kbd>}
           </button>
         ),

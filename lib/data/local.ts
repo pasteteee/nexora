@@ -104,7 +104,7 @@ function newCanvas(db: Db, workspaceId: string, name?: string): Canvas {
   const siblings = db.canvases.filter((c) => c.workspaceId === workspaceId && !c.deletedAt);
   const c: Canvas = {
     id: uid(), workspaceId,
-    name: name?.trim() || `Страница ${siblings.length + 1}`,
+    name: name?.trim() || "Без названия",
     backgroundType: "grid", backgroundSpacing: 24,
     position: siblings.reduce((m, x) => Math.max(m, x.position), 0) + 1,
     deletedAt: null, createdAt: now(), updatedAt: now(),

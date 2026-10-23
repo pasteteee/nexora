@@ -1,44 +1,117 @@
-.page { min-height: 100vh; background: var(--bg); }
+.page { min-height: 100vh; }
 
 .bar {
-  position: fixed; top: 14px; left: 14px; right: 14px; z-index: 20;
-  display: flex; justify-content: space-between; pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 14px 24px;
 }
-.bar > * { pointer-events: auto; }
-.brand { display: flex; align-items: center; gap: 8px; padding: 0 14px 0 10px; height: 42px; font-weight: 700; letter-spacing: -0.02em; }
-.mark { width: 20px; height: 20px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), #b07cf0); }
-.avatar { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #e8749a, var(--accent)); }
-
-/* сетка во всю ширину, разделители 2px вместо полей */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0; align-content: start; }
-.tile {
-  position: relative; height: 34vh; min-height: 240px; display: flex; flex-direction: column; justify-content: flex-end;
-  padding: 22px; background: var(--bg); cursor: pointer; overflow: hidden; outline: 1px solid var(--line);
-  animation: rise var(--t-slow) var(--ease) both;
-  transition: background var(--t-mid) var(--ease);
+.brand { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px 0 4px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: transparent;
+  font-size: 14px;
+  color: var(--ink-2);
+  cursor: pointer;
 }
-.tile:hover { background: var(--surface); }
-.cover { position: absolute; inset: 0 0 auto 0; height: 58%; transition: transform var(--t-slow) var(--ease); }
-.tile:hover .cover { transform: scale(1.04); }
-.cover i { position: absolute; border-radius: 10px; box-shadow: var(--shadow-1); }
-.name { position: relative; font-size: 19px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.meta { position: relative; display: flex; gap: 10px; align-items: center; color: var(--ink-3); font-size: 13px; margin-top: 4px; }
-.meta span { display: inline-flex; align-items: center; gap: 4px; }
-.meta svg { opacity: 0.8; }
-.role { padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: 12px; }
-.more { position: absolute; top: 12px; right: 12px; opacity: 0; transition: opacity var(--t-fast); }
-.tile:hover .more, .more:focus-within { opacity: 1; }
-.more > * { background: var(--surface) !important; box-shadow: var(--shadow-1); }
-.rename { position: relative; font: 650 19px var(--font); letter-spacing: -0.015em; border: 0; outline: 0; background: transparent; color: var(--ink); padding: 0; border-bottom: 2px solid var(--accent); }
+.profile:hover { background: var(--hover); color: var(--ink); }
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+.who { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.new { align-items: center; justify-content: center; gap: 10px; color: var(--ink-3); }
-.new .plus { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); transition: transform var(--t-mid) var(--ease); }
-.new:hover .plus { transform: rotate(90deg) scale(1.08); }
-.new:hover { color: var(--ink); }
+.wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 96px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.h1 { margin: 0; font-size: 2.2rem; font-weight: 750; letter-spacing: -0.035em; line-height: 1.1; }
 
-.empty { grid-column: 1 / -1; height: 100vh; display: grid; place-items: center; background: var(--bg); text-align: center; }
-.empty b { display: block; font-size: 28px; letter-spacing: -0.03em; margin: 18px 0 6px; }
-.empty p { margin: 0 0 18px; color: var(--ink-2); }
+.tabs { display: flex; gap: 20px; margin: 22px 0 6px; border-bottom: 1px solid var(--line); }
+.tabs button {
+  height: 36px;
+  margin-bottom: -1px;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-size: 14px;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--ink); }
+
+/* ---------- список: каждая тетрадь — корешок, название и сведения ---------- */
+.list { margin: 0; padding: 0; list-style: none; }
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 8px;
+  margin: 0 -8px;
+  border-radius: var(--radius-m);
+  cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease);
+}
+.row + .row { box-shadow: 0 -1px 0 var(--line); }
+.row:hover { background: var(--surface-2); box-shadow: none; }
+.row:hover + .row { box-shadow: none; }
+.row[data-trash] { cursor: default; }
+.spine {
+  flex: none;
+  width: 12px;
+  height: 40px;
+  border-radius: 2px 3px 3px 2px;
+  box-shadow: inset 2px 0 0 oklch(0 0 0 / 0.12);
+}
+.text { flex: 1; min-width: 0; }
+.name {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 2px; font-size: 13px; color: var(--ink-3); }
+.role { color: var(--ink-2); }
 .trashNote { color: var(--danger); }
+.more { flex: none; opacity: 0; transition: opacity var(--t-fast) var(--ease); }
+.row:hover .more, .more:focus-within, .row[data-trash] .more { opacity: 1; }
+@media (hover: none) { .more { opacity: 1; } }
+.rename {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: 1.5px solid var(--accent);
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 600 16px/1.35 var(--font);
+}
 
-@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+.empty { padding: 56px 0; max-width: 380px; }
+.empty b { display: block; font-size: 1.25rem; font-weight: 650; letter-spacing: -0.015em; }
+.empty p { margin: 6px 0 18px; color: var(--ink-2); }
+
+@media (max-width: 560px) {
+  .bar, .wrap { padding-left: 16px; padding-right: 16px; }
+  .who { display: none; }
+  .h1 { font-size: 1.8rem; }
+}

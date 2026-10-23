@@ -1,92 +1,91 @@
 /* ---------- кнопки-иконки и группы ---------- */
-.group {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px;
-  background: var(--surface);
-  border-radius: 999px;
-  box-shadow: var(--shadow-1);
-}
-.vertical { flex-direction: column; border-radius: var(--radius-l); }
-.sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
-.vertical .sep { width: 20px; height: 1px; margin: 4px 0; }
+.group { display: inline-flex; align-items: center; gap: 2px; }
+.vertical { flex-direction: column; }
+.sep { width: 1px; height: 18px; background: var(--line); margin: 0 6px; }
+.vertical .sep { width: 18px; height: 1px; margin: 6px 0; }
 
 .iconBtn {
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-m);
   background: transparent;
   color: var(--ink-2);
   cursor: pointer;
-  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+  transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
-.iconBtn:hover { background: var(--surface-2); color: var(--ink); }
-.iconBtn:active { transform: scale(0.94); }
-.iconBtn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.iconBtn:hover { background: var(--hover); color: var(--ink); }
+.iconBtn[aria-pressed="true"] { background: var(--hover); color: var(--ink); }
 .iconBtn:disabled { opacity: 0.35; pointer-events: none; }
 
-/* подсказка вместо подписи — текст появляется только по наведению */
+/* подсказка по наведению — с задержкой, чтобы не мигала при проходе мышью */
 .iconBtn[data-tip]:hover::after {
   content: attr(data-tip);
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
-  padding: 4px 8px;
+  padding: 3px 8px;
   font-size: 12px;
-  color: var(--surface);
+  line-height: 1.5;
+  color: var(--bg);
   background: var(--ink);
-  border-radius: 6px;
+  border-radius: var(--radius-s);
   pointer-events: none;
-  animation: fade var(--t-fast) var(--ease) both;
+  animation: fade var(--t-fast) var(--ease) 400ms both;
   z-index: 50;
 }
-.tipRight[data-tip]:hover::after { top: 50%; left: calc(100% + 8px); transform: translateY(-50%); }
+.tipRight[data-tip]:hover::after { top: 50%; left: calc(100% + 6px); transform: translateY(-50%); }
 
 /* ---------- обычные кнопки ---------- */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 18px;
-  border: 0;
-  border-radius: 999px;
-  font-weight: 550;
-  cursor: pointer;
-  transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), opacity var(--t-fast);
-}
-.btn:active { transform: scale(0.97); }
-.btn:disabled { opacity: 0.5; pointer-events: none; }
-.primary { background: var(--ink); color: var(--bg); }
-.primary:hover { opacity: 0.88; }
-.ghost { background: var(--surface-2); color: var(--ink); }
-.ghost:hover { background: var(--line); }
-.dangerBtn { background: var(--danger); color: #fff; }
-
-/* ---------- поле ввода ---------- */
-.field { display: grid; gap: 6px; }
-.input {
-  height: 44px;
+  gap: 6px;
+  height: 36px;
   padding: 0 14px;
   border: 0;
   border-radius: var(--radius-m);
-  background: var(--surface-2);
+  font-size: 14.5px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+.btn:disabled { opacity: 0.5; pointer-events: none; }
+.primary { background: var(--accent); color: var(--on-accent); }
+.primary:hover { background: var(--accent-hover); }
+.secondary { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.secondary:hover { background: var(--hover); }
+.ghost { background: transparent; color: var(--ink-2); }
+.ghost:hover { background: var(--hover); color: var(--ink); }
+.dangerBtn { background: var(--danger); color: var(--on-accent); }
+
+/* ---------- поле ввода ---------- */
+.field { display: grid; gap: 6px; }
+.label { font-size: 13.5px; font-weight: 550; color: var(--ink-2); }
+.input {
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
   color: var(--ink);
   font: inherit;
-  transition: box-shadow var(--t-fast) var(--ease), background var(--t-fast);
+  font-size: 15px;
+  transition: box-shadow var(--t-fast) var(--ease);
 }
-.input:focus { outline: none; background: var(--surface); box-shadow: 0 0 0 2px var(--accent); }
-.input[aria-invalid="true"] { box-shadow: 0 0 0 2px var(--danger); }
-.hint { font-size: 12.5px; color: var(--ink-3); }
-.err { font-size: 12.5px; color: var(--danger); }
+.input::placeholder { color: var(--ink-3); }
+.input:hover { box-shadow: inset 0 0 0 1px var(--ink-3); }
+.input:focus { outline: none; box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-soft); }
+.input[aria-invalid="true"] { box-shadow: inset 0 0 0 1.5px var(--danger); }
+.hint { font-size: 13px; color: var(--ink-3); }
+.err { font-size: 13px; color: var(--danger); }
 
 /* ---------- диалог ---------- */
 .backdrop {
@@ -94,31 +93,32 @@
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(2px);
+  background: oklch(0.2 0.01 85 / 0.32);
   z-index: 100;
   animation: fade var(--t-mid) var(--ease) both;
 }
 .dialog {
   width: min(420px, calc(100vw - 32px));
-  padding: 22px;
+  padding: 20px;
   background: var(--surface);
   border-radius: var(--radius-l);
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--shadow-pop);
   animation: pop var(--t-mid) var(--ease) both;
 }
 .dialogTitle { margin: 0 0 6px; font-size: 17px; font-weight: 650; }
 .dialogBody { color: var(--ink-2); margin-bottom: 18px; }
 .dialogActions { display: flex; gap: 8px; justify-content: flex-end; }
 
-/* ---------- контекстное меню ---------- */
+/* ---------- меню (контекстное, «⋯», «/») ---------- */
 .menu {
   position: fixed;
-  min-width: 200px;
-  padding: 6px;
+  min-width: 220px;
+  max-height: min(440px, calc(100vh - 16px));
+  overflow-y: auto;
+  padding: 4px;
   background: var(--surface);
-  border-radius: var(--radius-m);
-  box-shadow: var(--shadow-2);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-pop);
   z-index: 200;
   animation: pop var(--t-fast) var(--ease) both;
   transform-origin: top left;
@@ -128,21 +128,23 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  height: 34px;
-  padding: 0 10px;
+  min-height: 32px;
+  padding: 0 8px;
   border: 0;
-  border-radius: var(--radius-s);
+  border-radius: var(--radius-m);
   background: transparent;
   text-align: left;
   font-size: 14px;
   cursor: pointer;
 }
-.menuItem:hover, .menuItem:focus-visible { background: var(--surface-2); outline: none; }
+.menuItem:hover, .menuItem:focus-visible { background: var(--hover); outline: none; }
 .menuItem svg { color: var(--ink-2); flex: none; }
-.menuItem kbd { margin-left: auto; font: 12px var(--font); color: var(--ink-3); }
+.menuLabel { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menuItem kbd { margin-left: auto; color: var(--ink-3); }
 .menuDanger { color: var(--danger); }
 .menuDanger svg { color: var(--danger); }
-.menuSep { height: 1px; margin: 5px 6px; background: var(--line); }
+.menuSep { height: 1px; margin: 4px -4px; background: var(--line); }
+.menuHeading { padding: 8px 8px 4px; font-size: 12px; font-weight: 600; color: var(--ink-3); }
 
 /* ---------- тосты ---------- */
 .toasts {
@@ -157,35 +159,30 @@
 .toast {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px 10px 16px;
+  gap: 14px;
+  padding: 9px 12px 9px 14px;
   background: var(--ink);
   color: var(--bg);
-  border-radius: 999px;
-  box-shadow: var(--shadow-2);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-pop);
   font-size: 14px;
   animation: rise var(--t-mid) var(--ease) both;
 }
-.toast button { border: 0; background: none; color: var(--accent); font-weight: 600; cursor: pointer; }
+.toast button { border: 0; padding: 0; background: none; color: var(--bg); font-weight: 650; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 
 /* ---------- загрузка ---------- */
-.skeleton {
-  border-radius: var(--radius-m);
-  background: linear-gradient(90deg, var(--surface-2) 0%, var(--line) 50%, var(--surface-2) 100%);
-  background-size: 200% 100%;
-  animation: shimmer 1.2s linear infinite;
-}
+.skeleton { border-radius: var(--radius-s); background: var(--surface-2); animation: breathe 1.4s ease-in-out infinite alternate; }
 .spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--line);
-  border-top-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--line);
+  border-top-color: var(--ink-2);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
 
 @keyframes fade { from { opacity: 0; } }
-@keyframes pop { from { opacity: 0; transform: scale(0.96); } }
-@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
-@keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes pop { from { opacity: 0; transform: scale(0.98) translateY(-2px); } }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+@keyframes breathe { to { opacity: 0.55; } }
 @keyframes spin { to { transform: rotate(360deg); } }

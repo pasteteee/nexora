@@ -47,8 +47,8 @@ export default function RegisterPage() {
     <AuthShell title="Создать аккаунт">
       <form onSubmit={submit} style={{ display: "grid", gap: 12 }} noValidate>
         {err && <div className={s.error}>{err}</div>}
-        <Field placeholder="Имя" aria-label="Имя" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} error={errors.name ?? undefined} autoFocus />
-        <Field type="email" placeholder="E-mail" aria-label="E-mail" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email ?? undefined} />
+        <Field label="Имя" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} error={errors.name ?? undefined} autoFocus />
+        <Field type="email" label="E-mail" placeholder="name@mail.ru" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email ?? undefined} />
         <PasswordField value={password} onChange={setPassword} autoComplete="new-password" error={errors.password ?? undefined} />
         <Button type="submit" disabled={busy}>{busy ? <Spinner /> : "Зарегистрироваться"}</Button>
         <div className={s.row}><span>Уже есть аккаунт?</span><Link href="/login">Войти</Link></div>

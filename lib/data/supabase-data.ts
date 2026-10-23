@@ -100,7 +100,7 @@ export const supabaseData: DataApi = {
     const ws = check(await sb().from("workspaces")
       .insert({ owner_id: me, name: name?.trim() || "Новая тетрадь" }).select().single());
     // у новой тетради сразу есть первая страница
-    check(await sb().from("canvases").insert({ workspace_id: ws.id, name: "Страница 1", position: 1 }));
+    check(await sb().from("canvases").insert({ workspace_id: ws.id, name: "Без названия", position: 1 }));
     return toWs(ws, "owner", 1);
   },
   async renameWorkspace(id, name) {
@@ -127,9 +127,8 @@ export const supabaseData: DataApi = {
     return r.data ? toCanvas(r.data) : null;
   },
   async createCanvas(workspaceId, name) {
-    const count = (await this.listCanvases(workspaceId)).length;
     const r = check(await sb().from("canvases").insert({
-      workspace_id: workspaceId, name: name?.trim() || `Страница ${count + 1}`, position: await nextPosition(workspaceId),
+      workspace_id: workspaceId, name: name?.trim() || "Без названия", position: await nextPosition(workspaceId),
     }).select().single());
     return toCanvas(r);
   },
