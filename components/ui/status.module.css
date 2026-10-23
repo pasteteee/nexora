@@ -1,0 +1,19 @@
+.screen {
+  position: fixed; inset: 0; display: grid; place-items: center; text-align: center; overflow: hidden;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--grid) 1.2px, transparent 1.2px); background-size: 24px 24px;
+}
+.code {
+  font-size: clamp(120px, 26vw, 340px); line-height: 0.85; font-weight: 800; letter-spacing: -0.06em;
+  background: linear-gradient(120deg, var(--accent), #b07cf0 60%, #e8749a);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: float 5s ease-in-out infinite alternate;
+}
+.text { margin: 18px 0 22px; color: var(--ink-2); font-size: 17px; }
+.actions { display: inline-flex; gap: 8px; }
+.sticker {
+  position: absolute; right: 12%; top: 20%; padding: 14px 16px; width: 180px; rotate: 6deg;
+  background: var(--note-yellow); border-radius: 14px; box-shadow: var(--shadow-1); font-weight: 550; text-align: left;
+}
+@keyframes float { to { translate: 0 -10px; } }
+@media (max-width: 720px) { .sticker { display: none; } }
