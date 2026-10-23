@@ -9,6 +9,8 @@ import { Canvas as CanvasView } from "./Canvas";
 import { SaveIndicator } from "./SaveIndicator";
 import { HistoryButtons } from "./HistoryButtons";
 import { PagesPanel } from "./PagesPanel";
+import { Toolbar } from "./Toolbar";
+import { useUi } from "@/lib/editor/ui";
 import type { Canvas, WorkspaceCard } from "@/lib/types";
 import s from "./editor.module.css";
 
@@ -45,6 +47,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
           background: { type: c.backgroundType, spacing: c.backgroundSpacing },
           camera: loadCamera(canvasId) ?? undefined,
         });
+        useUi.setState({ workspaceId, tool: "select", editing: null });
         setReady(canvasId);
       })
       .catch(() => alive && setMissing(true));
@@ -77,6 +80,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
         <HistoryButtons />
         <Group><SaveIndicator /></Group>
       </div>
+      {ready === canvasId && <Toolbar shifted={panel} />}
       {panel && ws && (
         <PagesPanel workspaceId={workspaceId} current={canvasId} pages={pages} canEdit={canEdit}
           onChange={() => setTick((t) => t + 1)} go={go} />

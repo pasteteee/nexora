@@ -114,7 +114,10 @@ export function Menu({ x, y, items, onClose }: { x: number; y: number; items: Me
       window.removeEventListener("blur", close);
     };
   }, [onClose]);
-  const visible = items.filter((i) => !("hidden" in i && i.hidden));
+  // скрытые пункты убираются, разделители не повторяются и не стоят по краям
+  const visible = items.filter((i) => !("hidden" in i && i.hidden))
+    .filter((it, i, arr) => !("sep" in it) || (i > 0 && i < arr.length - 1 && !("sep" in arr[i - 1])));
+  while (visible.length && "sep" in visible.at(-1)!) visible.pop();
   return createPortal(
     <div ref={ref} role="menu" className={s.menu} style={{ left: pos.x, top: pos.y }} onContextMenu={(e) => e.preventDefault()}>
       {visible.map((it, i) =>
