@@ -2,7 +2,7 @@
 /** Реализация DataApi поверх Supabase (Postgres + RLS). Права проверяет база, клиент только отображает. */
 import type { DataApi } from "./api";
 import { ApiError } from "./api";
-import type { Canvas, Role, WorkspaceCard } from "@/lib/types";
+import type { Canvas, CanvasElement, Role, WorkspaceCard } from "@/lib/types";
 import { TRASH_DAYS } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
@@ -44,6 +44,20 @@ const toCanvas = (r: Row): Canvas => ({
   createdAt: r.created_at as string, updatedAt: r.updated_at as string,
 });
 const CANVAS_COLS = { name: "name", backgroundType: "background_type", backgroundSpacing: "background_spacing", position: "position" } as const;
+
+const toEl = (r: Row): CanvasElement => ({
+  id: r.id as string, canvasId: r.canvas_id as string, type: r.type as CanvasElement["type"],
+  x: r.x as number, y: r.y as number, width: r.width as number, height: r.height as number,
+  rotation: r.rotation as number, zIndex: r.z_index as number,
+  content: (r.content_json as Row) ?? {}, style: (r.style_json as Row) ?? {},
+  sourceId: (r.source_id as string) ?? null, groupId: (r.group_id as string) ?? null,
+  createdBy: (r.created_by as string) ?? null, updatedAt: r.updated_at as string,
+});
+/** Поля, которые клиент может менять у существующего объекта (grant update в схеме) */
+const elUpdate = (e: CanvasElement) => ({
+  type: e.type, x: e.x, y: e.y, width: e.width, height: e.height, rotation: 0, z_index: e.zIndex,
+  content_json: e.content, style_json: e.style, source_id: e.sourceId, group_id: e.groupId,
+});
 
 async function nextPosition(workspaceId: string) {
   const r = check(await sb().from("canvases").select("position").eq("workspace_id", workspaceId)
@@ -138,9 +152,33 @@ export const supabaseData: DataApi = {
   async reorderCanvases(_workspaceId, orderedIds) {
     await Promise.all(orderedIds.map((cid, i) => sb().from("canvases").update({ position: i + 1 }).eq("id", cid).then(check)));
   },
-  listElements: notYet("Элементы"),
-  upsertElements: notYet("Элементы"),
-  deleteElements: notYet("Элементы"),
+  async listElements(canvasId) {
+    const r = check(await sb().from("elements").select("*").eq("canvas_id", canvasId).order("z_index"));
+    return (r ?? []).map(toEl);
+  },
+  async upsertElements(els) {
+    if (!els.length) return;
+    // id, холст и тетрадь задаются только при вставке, created_by — по умолчанию auth.uid()
+    const ids = els.map((e) => e.id);
+    const existing = new Set((check(await sb().from("elements").select("id").in("id", ids)) ?? []).map((r) => r.id as string));
+    const fresh = els.filter((e) => !existing.has(e.id));
+    if (fresh.length) {
+      const canvasIds = [...new Set(fresh.map((e) => e.canvasId))];
+      const ws = new Map((check(await sb().from("canvases").select("id, workspace_id").in("id", canvasIds)) ?? [])
+        .map((r) => [r.id as string, r.workspace_id as string]));
+      // группа должна существовать раньше своих объектов
+      const ordered = [...fresh].sort((a, b) => Number(b.type === "group") - Number(a.type === "group"));
+      check(await sb().from("elements").insert(ordered.map((e) => ({
+        id: e.id, canvas_id: e.canvasId, workspace_id: ws.get(e.canvasId), ...elUpdate(e),
+      }))));
+    }
+    await Promise.all(els.filter((e) => existing.has(e.id))
+      .map((e) => sb().from("elements").update(elUpdate(e)).eq("id", e.id).then(check)));
+  },
+  async deleteElements(ids) {
+    if (!ids.length) return;
+    check(await sb().from("elements").delete().in("id", ids));
+  },
   listSources: notYet("Источники"),
   uploadSource: notYet("Источники"),
   deleteSource: notYet("Источники"),

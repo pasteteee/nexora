@@ -1,7 +1,46 @@
 .root { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
 .tl { position: absolute; top: 14px; left: 14px; z-index: 30; display: flex; gap: 8px; }
+.tr { position: absolute; top: 14px; right: 14px; z-index: 30; display: flex; gap: 8px; }
 .crumb { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; font-size: 14px; cursor: pointer; max-width: 340px; }
 .crumb:hover { background: var(--surface-2); }
 .crumb span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .crumb .ws { color: var(--ink-3); }
 .empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-3); pointer-events: none; }
+
+/* ---------- холст ---------- */
+.viewport { position: absolute; inset: 0; overflow: hidden; touch-action: none; outline: none; }
+.viewport.panning { cursor: grabbing; }
+.viewport.spaceReady { cursor: grab; }
+.world { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.el { position: absolute; box-sizing: border-box; }
+.boundary { position: absolute; border: 1px dashed var(--line); pointer-events: none; }
+
+.br { position: absolute; right: 14px; bottom: 14px; z-index: 30; }
+.bl { position: absolute; left: 14px; bottom: 14px; z-index: 30; }
+.zoomLabel { min-width: 52px; height: 34px; border: 0; border-radius: 999px; background: transparent; font: 600 13px var(--font); color: var(--ink-2); cursor: pointer; font-variant-numeric: tabular-nums; }
+.zoomLabel:hover { background: var(--surface-2); color: var(--ink); }
+
+.bgPreview { width: 18px; height: 18px; border-radius: 5px; background-color: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); }
+.pop {
+  position: absolute; bottom: calc(100% + 10px); left: 0; padding: 8px; display: grid; gap: 8px;
+  background: var(--surface); border-radius: var(--radius-m); box-shadow: var(--shadow-2);
+  animation: popIn var(--t-fast) var(--ease) both; transform-origin: bottom left;
+}
+.swatches { display: grid; grid-template-columns: repeat(4, 44px); gap: 6px; }
+.swatch { height: 44px; border: 0; border-radius: 10px; cursor: pointer; background-color: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+.swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+.steps { display: flex; gap: 4px; }
+.step { flex: 1; height: 28px; border: 0; border-radius: 8px; background: var(--surface-2); font: 600 12px var(--font); color: var(--ink-2); cursor: pointer; }
+.step[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+@keyframes popIn { from { opacity: 0; transform: scale(0.95) translateY(4px); } }
+
+/* ---------- выделение ---------- */
+.el { cursor: default; }
+.selBox { position: absolute; pointer-events: none; outline: 1.5px solid var(--accent); outline-offset: 2px; border-radius: 4px; z-index: 20; }
+.selItem { position: absolute; pointer-events: none; outline: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; border-radius: 3px; z-index: 20; }
+.handle {
+  position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; pointer-events: auto;
+  background: var(--surface); border: 1.5px solid var(--accent); border-radius: 3px; z-index: 21;
+}
+.marquee { position: absolute; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 2px; pointer-events: none; z-index: 22; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
