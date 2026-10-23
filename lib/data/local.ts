@@ -7,7 +7,7 @@ import type { AuthApi, DataApi } from "./api";
 import { ApiError } from "./api";
 import type { Canvas, CanvasElement, Profile, Role, Source, Workspace, WorkspaceCard } from "@/lib/types";
 import { TRASH_DAYS } from "@/lib/types";
-import { checkUpload } from "./upload-rules";
+import { checkUpload, sourceMime } from "./upload-rules";
 import { demoDataUrl, imageSize, validateImage } from "./images";
 
 type User = Profile & { passHash: string; confirmed: boolean };
@@ -349,7 +349,7 @@ export const localData: DataApi = {
     });
     return tx((db) => {
       const s: Source = {
-        id: uid(), workspaceId, originalName: file.name, mimeType: file.type || "application/octet-stream",
+        id: uid(), workspaceId, originalName: file.name, mimeType: sourceMime(file),
         size: file.size, status: "pending", errorMessage: null, createdAt: now(), dataUrl,
       };
       db.sources.push(s);
