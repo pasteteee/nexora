@@ -13,7 +13,7 @@ export function backgroundStyle(type: BackgroundType, spacing: number, c: Camera
     const r = Math.max(0.8, Math.min(1.6, c.zoom * 1.2));
     return { backgroundImage: `radial-gradient(${line} ${r}px, transparent ${r}px)`, backgroundSize: `${s}px ${s}px`, backgroundPosition: pos };
   }
-  if (type === "lines") {
+  if (type === "ruled") {
     return { backgroundImage: `linear-gradient(to bottom, ${line} 1px, transparent 1px)`, backgroundSize: `100% ${s}px`, backgroundPosition: pos };
   }
   return {

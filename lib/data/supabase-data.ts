@@ -53,10 +53,10 @@ const toEl = (r: Row): CanvasElement => ({
   sourceId: (r.source_id as string) ?? null, groupId: (r.group_id as string) ?? null,
   createdBy: (r.created_by as string) ?? null, updatedAt: r.updated_at as string,
 });
-const fromEl = (e: CanvasElement) => ({
-  id: e.id, canvas_id: e.canvasId, type: e.type, x: e.x, y: e.y, width: e.width, height: e.height,
-  rotation: 0, z_index: e.zIndex, content_json: e.content, style_json: e.style,
-  source_id: e.sourceId, group_id: e.groupId,
+/** Поля, которые клиент может менять у существующего объекта (grant update в схеме) */
+const elUpdate = (e: CanvasElement) => ({
+  type: e.type, x: e.x, y: e.y, width: e.width, height: e.height, rotation: 0, z_index: e.zIndex,
+  content_json: e.content, style_json: e.style, source_id: e.sourceId, group_id: e.groupId,
 });
 
 async function nextPosition(workspaceId: string) {
@@ -158,10 +158,22 @@ export const supabaseData: DataApi = {
   },
   async upsertElements(els) {
     if (!els.length) return;
-    const me = await uid();
-    // created_by проставляется только при вставке: у существующих строк поле не меняется
-    const rows = els.map((e) => ({ ...fromEl(e), created_by: e.createdBy ?? me }));
-    check(await sb().from("elements").upsert(rows, { onConflict: "id" }));
+    // id, холст и тетрадь задаются только при вставке, created_by — по умолчанию auth.uid()
+    const ids = els.map((e) => e.id);
+    const existing = new Set((check(await sb().from("elements").select("id").in("id", ids)) ?? []).map((r) => r.id as string));
+    const fresh = els.filter((e) => !existing.has(e.id));
+    if (fresh.length) {
+      const canvasIds = [...new Set(fresh.map((e) => e.canvasId))];
+      const ws = new Map((check(await sb().from("canvases").select("id, workspace_id").in("id", canvasIds)) ?? [])
+        .map((r) => [r.id as string, r.workspace_id as string]));
+      // группа должна существовать раньше своих объектов
+      const ordered = [...fresh].sort((a, b) => Number(b.type === "group") - Number(a.type === "group"));
+      check(await sb().from("elements").insert(ordered.map((e) => ({
+        id: e.id, canvas_id: e.canvasId, workspace_id: ws.get(e.canvasId), ...elUpdate(e),
+      }))));
+    }
+    await Promise.all(els.filter((e) => existing.has(e.id))
+      .map((e) => sb().from("elements").update(elUpdate(e)).eq("id", e.id).then(check)));
   },
   async deleteElements(ids) {
     if (!ids.length) return;

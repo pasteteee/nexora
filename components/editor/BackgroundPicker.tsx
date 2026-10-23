@@ -9,7 +9,7 @@ import s from "./editor.module.css";
 
 const TYPES: { type: BackgroundType; label: string }[] = [
   { type: "plain", label: "Чистый" }, { type: "grid", label: "Клетка" },
-  { type: "dots", label: "Точки" }, { type: "lines", label: "Линейка" },
+  { type: "dots", label: "Точки" }, { type: "ruled", label: "Линейка" },
 ];
 const SPACING = [16, 24, 32, 48] as const;
 const PREVIEW = { x: 0, y: 0, zoom: 0.5 };
