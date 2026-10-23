@@ -17,9 +17,11 @@ export function PasswordField(props: { value: string; onChange(v: string): void;
         onChange={(e) => props.onChange(e.target.value)}
         error={props.error}
       />
-      <IconButton className={s.eye} tip={show ? "Скрыть" : "Показать"} onClick={() => setShow(!show)}>
-        {show ? <EyeOff size={16} /> : <Eye size={16} />}
-      </IconButton>
+      <span className={s.eye}>
+        <IconButton tip={show ? "Скрыть" : "Показать"} onClick={() => setShow(!show)}>
+          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+        </IconButton>
+      </span>
     </div>
   );
 }
