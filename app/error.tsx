@@ -11,7 +11,7 @@ export default function ErrorPage({ error, unstable_retry }: { error: Error & { 
   return (
     <StatusScreen code="500" text="Что-то пошло не так. Попробуйте ещё раз.">
       <Button onClick={() => unstable_retry()}><RotateCcw size={16} /> Повторить</Button>
-      <Link href="/app" className={`${ui.btn} ${ui.ghost}`}><Home size={16} /> Мои тетради</Link>
+      <Link href="/app" className={`${ui.btn} ${ui.secondary}`}><Home size={16} /> Мои тетради</Link>
     </StatusScreen>
   );
 }

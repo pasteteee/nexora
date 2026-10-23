@@ -1,50 +1,25 @@
-/* Экран входа: холст на весь экран, форма плавает поверх — без полей вокруг страницы */
-.screen {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background-color: var(--bg);
-  background-image: radial-gradient(var(--grid) 1.2px, transparent 1.2px);
-  background-size: 24px 24px;
-}
-.logo { position: absolute; top: 18px; left: 20px; display: flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: -0.02em; }
-.mark { width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), #b07cf0); }
+/* Вход и регистрация: лист бумаги, одна колонка формы, ничего лишнего */
+.screen { min-height: 100vh; display: flex; flex-direction: column; }
+.top { padding: 18px 28px; }
+.logo { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
 
 .card {
-  position: relative;
-  z-index: 2;
   width: min(380px, calc(100vw - 32px));
-  padding: 28px;
+  margin: clamp(24px, 12vh, 120px) auto 64px;
   display: grid;
-  gap: 12px;
-  background: var(--surface);
-  border-radius: 22px;
-  box-shadow: var(--shadow-2);
-  animation: rise var(--t-slow) var(--ease) both;
+  gap: 14px;
 }
-.title { margin: 0 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
-.row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; color: var(--ink-2); }
+.title { margin: 0 0 8px; font-size: 2rem; font-weight: 750; letter-spacing: -0.035em; line-height: 1.1; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; color: var(--ink-2); }
 .row a { color: var(--accent); font-weight: 550; }
-.error { padding: 10px 12px; border-radius: var(--radius-m); background: rgba(212, 72, 59, 0.1); color: var(--danger); font-size: 13.5px; }
-.ok { padding: 10px 12px; border-radius: var(--radius-m); background: rgba(47, 158, 106, 0.12); color: var(--ok); font-size: 13.5px; }
+.row a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.error { padding: 10px 12px; border-radius: var(--radius-m); background: var(--danger-soft); color: var(--danger); font-size: 14px; }
+.ok { padding: 10px 12px; border-radius: var(--radius-m); background: var(--accent-soft); color: var(--accent); font-size: 14px; }
 .inbox {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: var(--radius-m);
-  background: var(--accent-soft); color: var(--accent); font-size: 13.5px; font-weight: 550;
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink); font-size: 14px; font-weight: 550;
 }
 .pass { position: relative; }
-.eye { position: absolute; right: 6px; top: 5px; }
-
-/* декоративные «объекты холста» за формой */
-.float { position: absolute; border-radius: 14px; box-shadow: var(--shadow-1); animation: drift 9s ease-in-out infinite alternate; }
-.n1 { width: 170px; height: 120px; left: 9%; top: 18%; background: var(--note-yellow); transform: rotate(-4deg); }
-.n2 { width: 140px; height: 140px; right: 11%; top: 14%; background: var(--note-blue); border-radius: 50%; animation-delay: -3s; }
-.n3 { width: 210px; height: 90px; left: 14%; bottom: 14%; background: var(--note-green); animation-delay: -5s; }
-.n4 { width: 160px; height: 110px; right: 8%; bottom: 18%; background: var(--note-violet); transform: rotate(3deg); animation-delay: -2s; }
-.line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; color: var(--ink-3); opacity: 0.5; }
-@media (max-width: 720px) { .float, .line { display: none; } }
-
-@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
-@keyframes drift { to { translate: 0 -14px; } }
+.eye { position: absolute; right: 5px; bottom: 5px; }

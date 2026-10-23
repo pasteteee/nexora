@@ -30,7 +30,7 @@ export default function ForgotPage() {
         {/* одинаковый ответ для любого адреса */}
         {sent > 0 && <div className={s.ok}>Если адрес зарегистрирован, письмо уже в пути</div>}
         <DemoInbox email={email} tick={sent} />
-        <Field type="email" placeholder="E-mail" aria-label="E-mail" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={err ?? undefined} autoFocus />
+        <Field type="email" label="E-mail" placeholder="name@mail.ru" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={err ?? undefined} autoFocus />
         <Button type="submit" disabled={busy}>{busy ? <Spinner /> : "Отправить ссылку"}</Button>
         <div className={s.row}><span /><Link href="/login">Ко входу</Link></div>
       </form>

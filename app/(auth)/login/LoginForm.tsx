@@ -65,7 +65,7 @@ export function LoginForm() {
         </div>
       )}
       <DemoInbox email={email} tick={unconfirmed} />
-      <Field type="email" placeholder="E-mail" aria-label="E-mail" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
+      <Field type="email" label="E-mail" placeholder="name@mail.ru" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
       <PasswordField value={password} onChange={setPassword} autoComplete="current-password" />
       <Button type="submit" disabled={busy}>{busy ? <Spinner /> : "Войти"}</Button>
       <div className={s.row}>

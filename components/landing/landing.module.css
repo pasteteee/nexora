@@ -1,59 +1,147 @@
-.page { min-height: 100vh; background: var(--bg); }
+.page { min-height: 100vh; display: flex; flex-direction: column; }
 
 .nav {
-  position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 20;
-  display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 14px;
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
-  backdrop-filter: blur(12px); border-radius: 999px; box-shadow: var(--shadow-1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 18px 28px;
 }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: -0.02em; margin-right: 10px; }
-.mark { width: 20px; height: 20px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), #b07cf0); }
-.navLink { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 999px; font-size: 14px; color: var(--ink-2); }
-.navLink:hover { background: var(--surface-2); color: var(--ink); }
-.cta { height: 34px; padding: 0 16px; display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 600; }
+.brand { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+.navLinks { display: flex; align-items: center; gap: 4px; }
+.link {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-m);
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+.link:hover { background: var(--hover); color: var(--ink); }
+.cta {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-m);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 14.5px;
+  font-weight: 600;
+  transition: background-color var(--t-fast) var(--ease);
+}
+.cta:hover { background: var(--accent-hover); }
 
-/* герой — живой холст на весь экран */
+/* ---------- первый экран: слева текст, справа живой лист ---------- */
 .hero {
-  position: relative; height: 100vh; min-height: 600px; overflow: hidden; touch-action: none;
-  background-image: radial-gradient(var(--grid) 1.2px, transparent 1.2px); background-size: 24px 24px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(32px, 5vw, 72px);
+  align-items: start;
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: clamp(24px, 6vh, 72px) 28px 64px;
 }
+.copy { position: sticky; top: 48px; padding-top: 24px; }
 .headline {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 1;
-  margin: 0; text-align: center; pointer-events: none;
-  font-size: clamp(40px, 7.4vw, 104px); line-height: 0.98; font-weight: 750; letter-spacing: -0.045em;
+  margin: 0;
+  font-size: clamp(2.4rem, 4.6vw, 3.9rem);
+  font-weight: 750;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  max-width: 11ch;
 }
-.headline span { background: linear-gradient(120deg, var(--accent), #b07cf0 60%, #e8749a); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.hint { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; color: var(--ink-3); font-size: 13px; animation: bob 2.4s ease-in-out infinite; }
-
-.item {
-  position: absolute; z-index: 2; cursor: grab; user-select: none;
-  border-radius: 14px; box-shadow: var(--shadow-1);
-  transition: box-shadow var(--t-fast) var(--ease), scale var(--t-fast) var(--ease);
-  animation: drop var(--t-slow) var(--ease) both;
+.lede {
+  margin: 20px 0 28px;
+  max-width: 36ch;
+  font-size: 1.125rem;
+  line-height: 1.55;
+  color: var(--ink-2);
 }
-.item:hover { box-shadow: var(--shadow-2); }
-.dragging { cursor: grabbing; box-shadow: var(--shadow-2); scale: 1.03; z-index: 5; }
-.note { padding: 14px 16px; font-size: 15px; font-weight: 550; line-height: 1.35; }
-.formula { padding: 14px 18px; background: var(--surface); font: italic 20px/1.2 "Times New Roman", serif; }
-.img { overflow: hidden; background: linear-gradient(140deg, #ffd9a8, #f59bb1 55%, #9b8cf0); }
-.img::after { content: ""; position: absolute; inset: auto 12px 12px auto; width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,.55); }
-.node { display: grid; place-items: center; border-radius: 999px; background: var(--surface); font-weight: 650; font-size: 14px; }
-.wires { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; color: var(--ink-3); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.actions .cta { height: 44px; padding: 0 20px; font-size: 15.5px; }
+.actions .link { height: 44px; }
 
-/* возможности — плитки на всю ширину, без полей страницы */
-.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; background: var(--line); }
-.tile { position: relative; min-height: 46vh; padding: 28px; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; background: var(--bg); overflow: hidden; }
-.big { position: absolute; top: 26px; left: 26px; color: var(--accent); }
-.tile b { font-size: 22px; letter-spacing: -0.02em; }
-.tile p { margin: 0; color: var(--ink-2); font-size: 14.5px; max-width: 30ch; }
-.tile::before { content: ""; position: absolute; inset: 0; background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 120%), var(--accent-soft), transparent 60%); opacity: 0; transition: opacity var(--t-mid); }
-.tile:hover::before { opacity: 1; }
-@media (max-width: 900px) { .tiles { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 560px) { .tiles { grid-template-columns: 1fr; } .tile { min-height: 32vh; } }
+.how { margin: 48px 0 0; padding: 0; display: grid; gap: 0; max-width: 420px; }
+.howRow {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+.howRow dt { display: flex; gap: 4px; }
+.howRow dd { margin: 0; color: var(--ink-2); }
+.page kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line), 0 1px 0 var(--line);
+  color: var(--ink);
+  font-size: 12.5px;
+  text-align: center;
+  line-height: 1.6;
+}
 
-.final { height: 60vh; display: grid; place-items: center; text-align: center; background: var(--ink); color: var(--bg); }
-.final h2 { margin: 0 0 22px; font-size: clamp(32px, 5vw, 64px); letter-spacing: -0.04em; line-height: 1; }
-.final a { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 24px; border-radius: 999px; background: var(--bg); color: var(--ink); font-weight: 650; }
+/* ---------- лист с демо ---------- */
+.demo { min-width: 0; }
+.sheet {
+  position: relative;
+  min-height: 600px;
+  padding: 36px 36px 8px 84px;
+  background: var(--surface);
+  border-radius: var(--radius-l);
+  box-shadow: 0 0 0 1px var(--line), 0 24px 48px -28px oklch(0.255 0.012 85 / 0.25);
+}
+.sheet::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 70px;
+  width: 1px;
+  background: var(--margin-rule);
+}
+.sheetTitle {
+  margin: 0 0 10px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+.caption { margin: 14px 4px 0; font-size: 14px; color: var(--ink-3); }
 
-@keyframes drop { from { opacity: 0; translate: 0 18px; } }
-@keyframes bob { 50% { translate: -50% -4px; } }
+.footer {
+  display: flex;
+  justify-content: space-between;
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px 28px 28px;
+  border-top: 1px solid var(--line);
+  font-size: 13.5px;
+  color: var(--ink-3);
+}
+
+@media (max-width: 960px) {
+  .hero { grid-template-columns: 1fr; }
+  .copy { position: static; padding-top: 0; }
+  .how { margin-top: 32px; }
+}
+@media (max-width: 560px) {
+  .nav, .hero, .footer { padding-left: 16px; padding-right: 16px; }
+  .navLinks .link { display: none; }
+  .sheet { padding: 24px 16px 4px 40px; }
+  .sheet::before { left: 30px; }
+  .sheetTitle { font-size: 1.4rem; }
+}
