@@ -6,9 +6,13 @@ const allowedPublicVariables = new Set([
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
 ]);
+// Vercel injects non-secret system values (env, URL, git ref) with this prefix;
+// names that look like credentials stay forbidden.
+const isVercelSystemVariable = (name: string) =>
+  name.startsWith("NEXT_PUBLIC_VERCEL_") && !/SECRET|TOKEN|BYPASS|KEY|PASS/.test(name);
 for (const [name, value] of Object.entries(process.env)) {
   if (name.startsWith("NEXT_PUBLIC_") && (
-    !allowedPublicVariables.has(name) || (value && /sb_secret_|service_role/i.test(value)) ||
+    !(allowedPublicVariables.has(name) || isVercelSystemVariable(name)) || (value && /sb_secret_|service_role/i.test(value)) ||
     (name === "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" && value &&
       (!/^sb_publishable_[A-Za-z0-9_-]{16,}$/.test(value) || value.includes("replace_me")))
   )) {
