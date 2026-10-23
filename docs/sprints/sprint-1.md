@@ -15,3 +15,7 @@
 Итого 32 SP. Закрытие ветки — после проверки QA (PR в `main`).
 
 Схема из PR #3 заменила черновые миграции `0001_init`/`0002_rls`: единственный источник схемы — `supabase/migrations/2026…`.
+
+## Превью
+
+Промежуточный результат спринта: https://nexora-git-sprint-1-foundation-pasteteees-projects.vercel.app — собирается Vercel из этой ветки при каждом пуше.
