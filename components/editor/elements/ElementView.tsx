@@ -5,6 +5,7 @@ import s from "../editor.module.css";
 
 /** Отрисовка объекта по типу. Типы объектов расширяются в спринте 4. */
 export const ElementView = memo(function ElementView({ el }: { el: CanvasElement }) {
+  if (el.type === "group") return null; // группа — служебный объект, видна только рамкой выделения
   const style = el.style as { fill?: string; color?: string };
   return (
     <div

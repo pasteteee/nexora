@@ -7,6 +7,7 @@ import { data } from "@/lib/data";
 import { loadCamera, useEditor } from "@/lib/editor/store";
 import { Canvas as CanvasView } from "./Canvas";
 import { SaveIndicator } from "./SaveIndicator";
+import { HistoryButtons } from "./HistoryButtons";
 import type { Canvas, WorkspaceCard } from "@/lib/types";
 import s from "./editor.module.css";
 
@@ -94,6 +95,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
         </Group>
       </div>
       <div className={s.tr}>
+        <HistoryButtons />
         <Group><SaveIndicator /></Group>
       </div>
       {menu && <Menu {...menu} onClose={() => setMenu(null)} />}

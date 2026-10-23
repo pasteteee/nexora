@@ -277,7 +277,7 @@ export const localData: DataApi = {
       const els = db.elements.filter((e) => e.canvasId === id);
       els.forEach((e) => idMap.set(e.id, uid()));
       for (const e of els) {
-        const groupId = e.groupId ? groupMap.get(e.groupId) ?? (groupMap.set(e.groupId, uid()), groupMap.get(e.groupId)!) : null;
+        const groupId = e.groupId ? idMap.get(e.groupId) ?? groupMap.get(e.groupId) ?? (groupMap.set(e.groupId, uid()), groupMap.get(e.groupId)!) : null;
         const content = { ...e.content };
         for (const k of ["fromId", "toId"]) if (typeof content[k] === "string") content[k] = idMap.get(content[k] as string) ?? null;
         db.elements.push({ ...e, id: idMap.get(e.id)!, canvasId: copy.id, groupId, content, updatedAt: now() });

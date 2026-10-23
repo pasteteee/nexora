@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "@/components/ui";
 import { intersects, normRect, resizeRect, toWorld, type Handle, type Pt, type Rect } from "@/lib/editor/geometry";
 import { BOUNDARY_MESSAGE, useEditor } from "@/lib/editor/store";
 import type { CanvasElement } from "@/lib/types";
 import { SelectionOverlay } from "./SelectionOverlay";
+import { useHotkeys } from "./useHotkeys";
 import { backgroundStyle } from "./Background";
 import { BackgroundPicker } from "./BackgroundPicker";
 import { ElementView } from "./elements/ElementView";
@@ -27,7 +28,8 @@ export function Canvas() {
     | { kind: "marquee"; start: Pt; base: string[]; additive: boolean };
   const gesture = useRef<Gesture | null>(null);
 
-  const view = () => ref.current?.getBoundingClientRect() ?? { width: 1, height: 1, left: 0, top: 0 };
+  const view = useCallback(() => ref.current?.getBoundingClientRect() ?? { width: 1, height: 1, left: 0, top: 0 }, []);
+  useHotkeys(view);
 
   // колесо: pinch/Ctrl — масштаб вокруг курсора, иначе — прокрутка камеры
   useEffect(() => {
@@ -63,7 +65,7 @@ export function Canvas() {
       const r = view();
       st.setCamera({ x: r.width / 2, y: r.height / 2, zoom: st.camera.zoom });
     }
-  }, []);
+  }, [view]);
 
   const local = (e: { clientX: number; clientY: number }): Pt => { const r = view(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   const world = (e: { clientX: number; clientY: number }) => toWorld(local(e), useEditor.getState().camera);
@@ -74,7 +76,7 @@ export function Canvas() {
     if (!id) return null;
     const { els } = useEditor.getState();
     const g = els[id]?.groupId;
-    return g ? Object.values(els).filter((x) => x.groupId === g).map((x) => x.id) : [id];
+    return g ? Object.values(els).filter((x) => x.groupId === g && x.type !== "group").map((x) => x.id) : [id];
   }
 
   function onPointerDown(e: React.PointerEvent) {
@@ -134,7 +136,7 @@ export function Canvas() {
       setMarquee(r);
       const tl = toWorld({ x: r.x, y: r.y }, st.camera);
       const wr = { x: tl.x, y: tl.y, width: r.width / st.camera.zoom, height: r.height / st.camera.zoom };
-      const inside = Object.values(st.els).filter((x) => intersects(x, wr)).map((x) => x.id);
+      const inside = Object.values(st.els).filter((x) => x.type !== "group" && intersects(x, wr)).map((x) => x.id);
       st.select([...g.base, ...inside]);
     }
   }
@@ -152,7 +154,7 @@ export function Canvas() {
       return [id, { x: e.x, y: e.y, width: e.width, height: e.height }];
     }));
     const before = g.kind === "move" ? g.orig : { [g.orig.id]: g.orig };
-    if (!st.apply(patches)) {
+    if (!st.apply(patches, "geometry", before)) {
       st.preview(before);
       toast(BOUNDARY_MESSAGE);
     }

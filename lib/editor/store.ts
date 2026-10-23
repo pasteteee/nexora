@@ -24,10 +24,20 @@ export type EditorState = {
   /** Локальное изменение без сохранения — во время перетаскивания */
   preview(patches: Record<string, Partial<CanvasElement>>): void;
   /** Зафиксировать изменения: проверка границ мира и автосохранение. false — отклонено. */
-  apply(patches: Record<string, Partial<CanvasElement>>, kind?: "geometry" | "text"): boolean;
+  apply(patches: Record<string, Partial<CanvasElement>>, kind?: "geometry" | "text", before?: Record<string, CanvasElement>): boolean;
   add(els: CanvasElement[]): boolean;
   remove(ids: string[]): void;
+
+  /** История текущей сессии: только собственные действия, не меньше 50 шагов (ТЗ 4.2.4) */
+  past: HistoryEntry[];
+  future: HistoryEntry[];
+  undo(): void;
+  redo(): void;
 };
+
+/** Состояние затронутых объектов до и после действия; null — объекта нет */
+export type HistoryEntry = { before: Record<string, CanvasElement | null>; after: Record<string, CanvasElement | null> };
+export const HISTORY_LIMIT = 100;
 
 export const BOUNDARY_MESSAGE = "Достигнута граница страницы";
 
@@ -63,6 +73,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   background: { type: "grid", spacing: 24 },
   els: {},
   selected: [],
+  past: [],
+  future: [],
 
   init({ canvasId, canEdit, els, background, camera }) {
     bindAutosave((id) => get().els[id]);
@@ -70,7 +82,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       canvasId, canEdit, background,
       els: Object.fromEntries(els.map((e) => [e.id, e])),
       bounds: boundsFor(els),
-      selected: [],
+      selected: [], past: [], future: [],
       camera: camera ?? { x: 0, y: 0, zoom: 1 },
     });
   },
@@ -92,8 +104,10 @@ export const useEditor = create<EditorState>((set, get) => ({
     for (const [id, p] of Object.entries(patches)) if (els[id]) els[id] = { ...els[id], ...p };
     set({ els });
   },
-  apply(patches, kind = "geometry") {
+  apply(patches, kind = "geometry", before) {
     const els = { ...get().els };
+    const prev: Record<string, CanvasElement | null> = {};
+    const nextMap: Record<string, CanvasElement | null> = {};
     let bounds = get().bounds;
     for (const [id, p] of Object.entries(patches)) {
       if (!els[id]) continue;
@@ -101,9 +115,12 @@ export const useEditor = create<EditorState>((set, get) => ({
       const b = fitBounds(bounds, next);
       if (!b) return false;
       bounds = b;
+      prev[id] = before?.[id] ?? els[id];
       els[id] = next;
+      nextMap[id] = next;
     }
     set({ els, bounds });
+    record(prev, nextMap);
     markChanged(Object.keys(patches), kind);
     return true;
   },
@@ -112,13 +129,50 @@ export const useEditor = create<EditorState>((set, get) => ({
     let bounds = get().bounds;
     for (const e of list) { const b = fitBounds(bounds, e); if (!b) return false; bounds = b; els[e.id] = e; }
     set({ els, bounds });
+    record(Object.fromEntries(list.map((e) => [e.id, null])), Object.fromEntries(list.map((e) => [e.id, e])));
     markChanged(list.map((e) => e.id));
     return true;
   },
   remove(ids) {
     const els = { ...get().els };
+    record(Object.fromEntries(ids.filter((id) => els[id]).map((id) => [id, els[id]])), Object.fromEntries(ids.map((id) => [id, null])));
     ids.forEach((id) => delete els[id]);
     set({ els, selected: get().selected.filter((id) => !ids.includes(id)) });
     markRemoved(ids);
   },
+
+  undo() {
+    const { past, future } = get();
+    const entry = past.at(-1);
+    if (!entry) return;
+    restore(entry.before);
+    set({ past: past.slice(0, -1), future: [...future, entry] });
+  },
+  redo() {
+    const { past, future } = get();
+    const entry = future.at(-1);
+    if (!entry) return;
+    restore(entry.after);
+    set({ future: future.slice(0, -1), past: [...past, entry] });
+  },
 }));
+
+function record(before: HistoryEntry["before"], after: HistoryEntry["after"]) {
+  if (!Object.keys(before).length) return;
+  const past = [...useEditor.getState().past, { before, after }].slice(-HISTORY_LIMIT);
+  useEditor.setState({ past, future: [] });
+}
+
+/** Отмена сохраняется на сервере как обычное изменение */
+function restore(state: HistoryEntry["before"]) {
+  const els = { ...useEditor.getState().els };
+  const changed: string[] = [];
+  const removed: string[] = [];
+  for (const [id, e] of Object.entries(state)) {
+    if (e) { els[id] = e; changed.push(id); } else { delete els[id]; removed.push(id); }
+  }
+  const selected = useEditor.getState().selected.filter((id) => els[id]);
+  useEditor.setState({ els, selected, bounds: boundsFor(Object.values(els)) });
+  if (changed.length) markChanged(changed);
+  if (removed.length) markRemoved(removed);
+}
