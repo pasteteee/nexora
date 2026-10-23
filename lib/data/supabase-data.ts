@@ -2,7 +2,7 @@
 /** Реализация DataApi поверх Supabase (Postgres + RLS). Права проверяет база, клиент только отображает. */
 import type { DataApi } from "./api";
 import { ApiError } from "./api";
-import type { Role, WorkspaceCard } from "@/lib/types";
+import type { Canvas, Role, WorkspaceCard } from "@/lib/types";
 import { TRASH_DAYS } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
@@ -35,6 +35,20 @@ async function pageCounts(ids: string[]) {
   const rows = check(await sb().from("canvases").select("workspace_id").in("workspace_id", ids).is("deleted_at", null));
   for (const r of rows ?? []) counts.set(r.workspace_id, (counts.get(r.workspace_id) ?? 0) + 1);
   return counts;
+}
+
+const toCanvas = (r: Row): Canvas => ({
+  id: r.id as string, workspaceId: r.workspace_id as string, name: r.name as string,
+  backgroundType: r.background_type as Canvas["backgroundType"], backgroundSpacing: r.background_spacing as Canvas["backgroundSpacing"],
+  position: r.position as number, deletedAt: (r.deleted_at as string) ?? null,
+  createdAt: r.created_at as string, updatedAt: r.updated_at as string,
+});
+const CANVAS_COLS = { name: "name", backgroundType: "background_type", backgroundSpacing: "background_spacing", position: "position" } as const;
+
+async function nextPosition(workspaceId: string) {
+  const r = check(await sb().from("canvases").select("position").eq("workspace_id", workspaceId)
+    .is("deleted_at", null).order("position", { ascending: false }).limit(1));
+  return ((r?.[0]?.position as number) ?? 0) + 1;
 }
 
 const notYet = (what: string) => async (): Promise<never> => {
@@ -84,15 +98,44 @@ export const supabaseData: DataApi = {
     check(await sb().from("workspaces").update({ deleted_at: null }).eq("id", id));
   },
 
-  listCanvases: notYet("Страницы"),
-  listCanvasTrash: notYet("Страницы"),
-  getCanvas: notYet("Страницы"),
-  createCanvas: notYet("Страницы"),
-  updateCanvas: notYet("Страницы"),
-  duplicateCanvas: notYet("Страницы"),
-  trashCanvas: notYet("Страницы"),
-  restoreCanvas: notYet("Страницы"),
-  reorderCanvases: notYet("Страницы"),
+  async listCanvases(workspaceId) {
+    const r = check(await sb().from("canvases").select("*").eq("workspace_id", workspaceId).is("deleted_at", null).order("position"));
+    return (r ?? []).map(toCanvas);
+  },
+  async listCanvasTrash(workspaceId) {
+    const r = check(await sb().from("canvases").select("*").eq("workspace_id", workspaceId).not("deleted_at", "is", null));
+    return (r ?? []).map(toCanvas);
+  },
+  async getCanvas(id) {
+    const r = await sb().from("canvases").select("*").eq("id", id).is("deleted_at", null).maybeSingle();
+    return r.data ? toCanvas(r.data) : null;
+  },
+  async createCanvas(workspaceId, name) {
+    const count = (await this.listCanvases(workspaceId)).length;
+    const r = check(await sb().from("canvases").insert({
+      workspace_id: workspaceId, name: name?.trim() || `Страница ${count + 1}`, position: await nextPosition(workspaceId),
+    }).select().single());
+    return toCanvas(r);
+  },
+  async updateCanvas(id, patch) {
+    const row: Row = {};
+    for (const [k, col] of Object.entries(CANVAS_COLS)) if (k in patch) row[col] = patch[k as keyof typeof patch];
+    check(await sb().from("canvases").update(row).eq("id", id));
+  },
+  async duplicateCanvas(id) {
+    // копирование целиком в одной транзакции — функция duplicate_canvas в БД
+    const newId = check(await sb().rpc("duplicate_canvas", { src: id })) as string;
+    return toCanvas(check(await sb().from("canvases").select("*").eq("id", newId).single()) as Row);
+  },
+  async trashCanvas(id) {
+    check(await sb().from("canvases").update({ deleted_at: new Date().toISOString() }).eq("id", id));
+  },
+  async restoreCanvas(id) {
+    check(await sb().from("canvases").update({ deleted_at: null }).eq("id", id));
+  },
+  async reorderCanvases(_workspaceId, orderedIds) {
+    await Promise.all(orderedIds.map((cid, i) => sb().from("canvases").update({ position: i + 1 }).eq("id", cid).then(check)));
+  },
   listElements: notYet("Элементы"),
   upsertElements: notYet("Элементы"),
   deleteElements: notYet("Элементы"),
