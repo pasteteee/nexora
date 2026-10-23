@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nexora — интеллектуальный холст знаний
 
-## Getting Started
+Учебное приложение «Интеллектуальный холст знаний» на Next.js, TypeScript и Supabase:
+свободный визуальный холст + база знаний + контекстный ИИ-помощник.
+ТЗ: «АИС Интеллектуальный холст знаний» (исправленная редакция).
 
-First, run the development server:
+Работа ведётся спринтами по 2 недели. Ветка на спринт: `sprint/N-<тема>`.
+В `main` попадает только то, что принял тестировщик.
 
+## База данных
+Схема БД, миграции, RLS по ролям, pgvector и приватное хранилище настроены в Supabase.
+Описание данных, ограничения, RPC и команды повторного запуска 217 проверок:
+[инструкция по базе данных](supabase/README.md). Типы БД: `lib/supabase/database.types.ts`.
+
+## Окружения
+Настройка Storage, Gmail SMTP и переменных: [окружения и почта](docs/environments.md).
+`.env.example` и `.env.smtp.example` содержат шаблоны без секретов; `.env.local` и `.env.smtp.local`
+игнорируются Git. Без ключей Supabase приложение работает в демо-режиме (данные в браузере).
+
+## Запуск
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm ci
+npm run dev          # http://localhost:3000
+npm run typecheck && npm run lint && npm test && npm run test:infra
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Документация
+`docs/adr/` — архитектурные решения, `docs/design.md` — дизайн-система,
+`docs/test-plan.md` — тест-план, `docs/sprints/` — итоги спринтов.
