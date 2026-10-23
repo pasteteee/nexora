@@ -50,6 +50,11 @@ export function signedUrlTtl(value: string | undefined): number {
   return ttl;
 }
 
+// Non-secret system values injected by Vercel (environment, URLs, git ref).
+export function isVercelSystemVariable(name: string): boolean {
+  return name.startsWith("NEXT_PUBLIC_VERCEL_") && !/SECRET|TOKEN|BYPASS|KEY|PASS/.test(name);
+}
+
 export function assertPublicEnvironment(env: Environment): void {
   // Explicit allowlist: no SMTP, worker credentials or management tokens can
   // become browser-visible by accidentally adding a NEXT_PUBLIC_ prefix.
@@ -59,7 +64,7 @@ export function assertPublicEnvironment(env: Environment): void {
   ]);
   for (const [name, value] of Object.entries(env)) {
     if (!name.startsWith("NEXT_PUBLIC_")) continue;
-    if (!allowed.has(name)) throw new ConfigurationError(name);
+    if (!allowed.has(name) && !isVercelSystemVariable(name)) throw new ConfigurationError(name);
     if (value && /sb_secret_|service_role/i.test(value)) throw new ConfigurationError(name);
   }
   if (env.NEXT_PUBLIC_SUPABASE_URL) {
