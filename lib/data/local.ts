@@ -117,6 +117,9 @@ function touchWs(db: Db, wsId: string) {
   if (w) w.updatedAt = now();
 }
 
+/** Источник без содержимого файла — то, что видит интерфейс */
+const pub = (s: Source): Source => { const c = { ...s }; delete c.dataUrl; return c; };
+
 /* ======================= AUTH ======================= */
 export const localAuth: AuthApi & { demoInbox(email: string): { kind: string; url: string } | null } = {
   async current() {
@@ -330,7 +333,7 @@ export const localData: DataApi = {
   async listSources(workspaceId) {
     const db = load();
     requireWs(db, workspaceId, "read");
-    return db.sources.filter((s) => s.workspaceId === workspaceId).map(({ dataUrl: _d, ...s }) => s);
+    return db.sources.filter((s) => s.workspaceId === workspaceId).map(pub);
   },
   async uploadSource(workspaceId, file) {
     const db0 = load();
@@ -350,8 +353,7 @@ export const localData: DataApi = {
       };
       db.sources.push(s);
       touchWs(db, workspaceId);
-      const { dataUrl: _d, ...pub } = s;
-      return pub;
+      return pub(s);
     });
   },
   async deleteSource(id) {
