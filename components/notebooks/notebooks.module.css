@@ -1,4 +1,4 @@
-.page { min-height: 100vh; background: var(--line); }
+.page { min-height: 100vh; background: var(--bg); }
 
 .bar {
   position: fixed; top: 14px; left: 14px; right: 14px; z-index: 20;
@@ -10,19 +10,20 @@
 .avatar { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #e8749a, var(--accent)); }
 
 /* сетка во всю ширину, разделители 2px вместо полей */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2px; min-height: 100vh; align-content: start; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0; align-content: start; }
 .tile {
   position: relative; height: 34vh; min-height: 240px; display: flex; flex-direction: column; justify-content: flex-end;
-  padding: 22px; background: var(--bg); cursor: pointer; overflow: hidden;
+  padding: 22px; background: var(--bg); cursor: pointer; overflow: hidden; outline: 1px solid var(--line);
   animation: rise var(--t-slow) var(--ease) both;
   transition: background var(--t-mid) var(--ease);
 }
 .tile:hover { background: var(--surface); }
-.cover { position: absolute; inset: 0 0 auto 0; height: 58%; opacity: 0.9; transition: transform var(--t-slow) var(--ease); }
+.cover { position: absolute; inset: 0 0 auto 0; height: 58%; transition: transform var(--t-slow) var(--ease); }
 .tile:hover .cover { transform: scale(1.04); }
 .cover i { position: absolute; border-radius: 10px; box-shadow: var(--shadow-1); }
 .name { position: relative; font-size: 19px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .meta { position: relative; display: flex; gap: 10px; align-items: center; color: var(--ink-3); font-size: 13px; margin-top: 4px; }
+.meta span { display: inline-flex; align-items: center; gap: 4px; }
 .meta svg { opacity: 0.8; }
 .role { padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: 12px; }
 .more { position: absolute; top: 12px; right: 12px; opacity: 0; transition: opacity var(--t-fast); }

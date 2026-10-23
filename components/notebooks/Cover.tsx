@@ -14,7 +14,7 @@ export function Cover({ id }: { id: string }) {
   const pick = (n: number) => `var(${NOTES[(h >> (n * 3)) % NOTES.length]})`;
   const base = ((h >> 4) % 360);
   return (
-    <div className={s.cover} style={{ background: `linear-gradient(160deg, hsl(${base} 60% 96%), hsl(${(base + 40) % 360} 55% 92%))` }}>
+    <div className={s.cover} style={{ background: `linear-gradient(160deg, hsl(${base} 70% 93%), hsl(${(base + 50) % 360} 65% 86%))` }}>
       <i style={{ left: `${10 + (h % 12)}%`, top: "22%", width: "34%", height: "38%", background: pick(1), rotate: `${(h % 7) - 3}deg` }} />
       <i style={{ left: `${52 + (h % 9)}%`, top: `${14 + (h % 10)}%`, width: "26%", height: "30%", background: pick(2), rotate: `${((h >> 3) % 7) - 3}deg` }} />
       <i style={{ left: `${40 + (h % 8)}%`, top: "58%", width: "22%", height: "26%", background: pick(3), borderRadius: "50%" }} />
