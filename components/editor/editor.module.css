@@ -33,3 +33,14 @@
 .step { flex: 1; height: 28px; border: 0; border-radius: 8px; background: var(--surface-2); font: 600 12px var(--font); color: var(--ink-2); cursor: pointer; }
 .step[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
 @keyframes popIn { from { opacity: 0; transform: scale(0.95) translateY(4px); } }
+
+/* ---------- выделение ---------- */
+.el { cursor: default; }
+.selBox { position: absolute; pointer-events: none; outline: 1.5px solid var(--accent); outline-offset: 2px; border-radius: 4px; z-index: 20; }
+.selItem { position: absolute; pointer-events: none; outline: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; border-radius: 3px; z-index: 20; }
+.handle {
+  position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; pointer-events: auto;
+  background: var(--surface); border: 1.5px solid var(--accent); border-radius: 3px; z-index: 21;
+}
+.marquee { position: absolute; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 2px; pointer-events: none; z-index: 22; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
