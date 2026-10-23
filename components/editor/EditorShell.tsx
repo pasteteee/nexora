@@ -6,6 +6,7 @@ import { Group, IconButton, Menu, Sep, toast, type MenuItem } from "@/components
 import { data } from "@/lib/data";
 import { loadCamera, useEditor } from "@/lib/editor/store";
 import { Canvas as CanvasView } from "./Canvas";
+import { SaveIndicator } from "./SaveIndicator";
 import type { Canvas, WorkspaceCard } from "@/lib/types";
 import s from "./editor.module.css";
 
@@ -91,6 +92,9 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
           </button>
           {canEdit && <IconButton tip="Новая страница" onClick={addPage}><FilePlus2 size={18} /></IconButton>}
         </Group>
+      </div>
+      <div className={s.tr}>
+        <Group><SaveIndicator /></Group>
       </div>
       {menu && <Menu {...menu} onClose={() => setMenu(null)} />}
     </main>

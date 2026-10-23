@@ -1,5 +1,6 @@
 .root { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
 .tl { position: absolute; top: 14px; left: 14px; z-index: 30; display: flex; gap: 8px; }
+.tr { position: absolute; top: 14px; right: 14px; z-index: 30; display: flex; gap: 8px; }
 .crumb { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; font-size: 14px; cursor: pointer; max-width: 340px; }
 .crumb:hover { background: var(--surface-2); }
 .crumb span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -2,7 +2,7 @@
 /** Реализация DataApi поверх Supabase (Postgres + RLS). Права проверяет база, клиент только отображает. */
 import type { DataApi } from "./api";
 import { ApiError } from "./api";
-import type { Canvas, Role, WorkspaceCard } from "@/lib/types";
+import type { Canvas, CanvasElement, Role, WorkspaceCard } from "@/lib/types";
 import { TRASH_DAYS } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
@@ -44,6 +44,20 @@ const toCanvas = (r: Row): Canvas => ({
   createdAt: r.created_at as string, updatedAt: r.updated_at as string,
 });
 const CANVAS_COLS = { name: "name", backgroundType: "background_type", backgroundSpacing: "background_spacing", position: "position" } as const;
+
+const toEl = (r: Row): CanvasElement => ({
+  id: r.id as string, canvasId: r.canvas_id as string, type: r.type as CanvasElement["type"],
+  x: r.x as number, y: r.y as number, width: r.width as number, height: r.height as number,
+  rotation: r.rotation as number, zIndex: r.z_index as number,
+  content: (r.content_json as Row) ?? {}, style: (r.style_json as Row) ?? {},
+  sourceId: (r.source_id as string) ?? null, groupId: (r.group_id as string) ?? null,
+  createdBy: (r.created_by as string) ?? null, updatedAt: r.updated_at as string,
+});
+const fromEl = (e: CanvasElement) => ({
+  id: e.id, canvas_id: e.canvasId, type: e.type, x: e.x, y: e.y, width: e.width, height: e.height,
+  rotation: 0, z_index: e.zIndex, content_json: e.content, style_json: e.style,
+  source_id: e.sourceId, group_id: e.groupId,
+});
 
 async function nextPosition(workspaceId: string) {
   const r = check(await sb().from("canvases").select("position").eq("workspace_id", workspaceId)
@@ -136,9 +150,21 @@ export const supabaseData: DataApi = {
   async reorderCanvases(_workspaceId, orderedIds) {
     await Promise.all(orderedIds.map((cid, i) => sb().from("canvases").update({ position: i + 1 }).eq("id", cid).then(check)));
   },
-  listElements: notYet("Элементы"),
-  upsertElements: notYet("Элементы"),
-  deleteElements: notYet("Элементы"),
+  async listElements(canvasId) {
+    const r = check(await sb().from("elements").select("*").eq("canvas_id", canvasId).order("z_index"));
+    return (r ?? []).map(toEl);
+  },
+  async upsertElements(els) {
+    if (!els.length) return;
+    const me = await uid();
+    // created_by проставляется только при вставке: у существующих строк поле не меняется
+    const rows = els.map((e) => ({ ...fromEl(e), created_by: e.createdBy ?? me }));
+    check(await sb().from("elements").upsert(rows, { onConflict: "id" }));
+  },
+  async deleteElements(ids) {
+    if (!ids.length) return;
+    check(await sb().from("elements").delete().in("id", ids));
+  },
   listSources: notYet("Источники"),
   uploadSource: notYet("Источники"),
   deleteSource: notYet("Источники"),

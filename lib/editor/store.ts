@@ -1,6 +1,7 @@
 "use client";
 import { create } from "zustand";
 import type { BackgroundType, CanvasElement } from "@/lib/types";
+import { bindAutosave } from "./autosave";
 import { WORLD, zoomAt, type Bounds, type Camera, type Pt } from "./geometry";
 
 export type EditorState = {
@@ -51,6 +52,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   els: {},
 
   init({ canvasId, canEdit, els, background, camera }) {
+    bindAutosave((id) => get().els[id]);
     set({
       canvasId, canEdit, background,
       els: Object.fromEntries(els.map((e) => [e.id, e])),
