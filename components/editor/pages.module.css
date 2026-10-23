@@ -1,0 +1,28 @@
+/* Панель страниц — плавающая карточка слева, без рамок, только тень */
+.panel {
+  position: absolute; top: 62px; left: 14px; bottom: 62px; width: 232px; z-index: 29;
+  display: flex; flex-direction: column; padding: 6px;
+  background: var(--surface); border-radius: var(--radius-l); box-shadow: var(--shadow-2);
+  animation: slide var(--t-mid) var(--ease) both;
+}
+@keyframes slide { from { opacity: 0; transform: translateX(-12px); } }
+.list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; display: grid; align-content: start; gap: 2px; touch-action: none; }
+.row {
+  display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 6px 0 10px;
+  border-radius: var(--radius-s); cursor: pointer; user-select: none; font-size: 14px;
+  transition: background var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.row:hover { background: var(--surface-2); }
+.row[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 550; }
+.row[data-dragging] { background: var(--surface); box-shadow: var(--shadow-2); transform: scale(1.02); cursor: grabbing; z-index: 1; }
+.num { width: 18px; text-align: right; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex: none; }
+.name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rename { flex: 1; min-width: 0; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; font: inherit; background: var(--surface); box-shadow: 0 0 0 2px var(--accent); color: var(--ink); outline: none; }
+.more { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 999px; background: none; color: var(--ink-3); cursor: pointer; opacity: 0; transition: opacity var(--t-fast); }
+.row:hover .more, .more:focus-visible { opacity: 1; }
+.more:hover { background: var(--line); color: var(--ink); }
+.foot { display: flex; gap: 2px; padding-top: 6px; margin-top: 6px; box-shadow: 0 -1px 0 var(--line); }
+.trash { display: grid; gap: 2px; max-height: 40%; overflow-y: auto; padding-top: 6px; margin-top: 6px; box-shadow: 0 -1px 0 var(--line); }
+.trashRow { display: flex; align-items: center; gap: 8px; height: 36px; padding-left: 10px; font-size: 13.5px; color: var(--ink-2); }
+.when { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.empty { display: grid; place-items: center; height: 48px; color: var(--ink-3); }
