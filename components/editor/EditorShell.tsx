@@ -1,13 +1,16 @@
 "use client";
 import { notFound, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronDown, Copy, FilePlus2, Home, Pencil, Trash2 } from "lucide-react";
-import { Group, IconButton, Menu, Sep, toast, type MenuItem } from "@/components/ui";
+import { Home, PanelLeft } from "lucide-react";
+import { Group, IconButton, Sep } from "@/components/ui";
 import { data } from "@/lib/data";
 import { loadCamera, useEditor } from "@/lib/editor/store";
 import { Canvas as CanvasView } from "./Canvas";
 import { SaveIndicator } from "./SaveIndicator";
 import { HistoryButtons } from "./HistoryButtons";
+import { PagesPanel } from "./PagesPanel";
+import { Toolbar } from "./Toolbar";
+import { useUi } from "@/lib/editor/ui";
 import type { Canvas, WorkspaceCard } from "@/lib/types";
 import s from "./editor.module.css";
 
@@ -17,7 +20,8 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
   const [ws, setWs] = useState<WorkspaceCard | null>(null);
   const [pages, setPages] = useState<Canvas[]>([]);
   const [missing, setMissing] = useState(false);
-  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
+  // открыта ли панель страниц — настройка пользователя (AuthGate рендерит редактор только в браузере)
+  const [panel, setPanel] = useState(() => { try { return localStorage.getItem("nexora:pages") === "1"; } catch { return false; } });
   const [tick, setTick] = useState(0);
   const [ready, setReady] = useState<string | null>(null);
 
@@ -43,6 +47,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
           background: { type: c.backgroundType, spacing: c.backgroundSpacing },
           camera: loadCamera(canvasId) ?? undefined,
         });
+        useUi.setState({ workspaceId, tool: "select", editing: null });
         setReady(canvasId);
       })
       .catch(() => alive && setMissing(true));
@@ -54,31 +59,8 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
   const canEdit = ws?.role !== "viewer";
   const go = (id: string) => router.push(`/app/w/${workspaceId}/p/${id}`);
 
-  async function addPage() {
-    const c = await data.createCanvas(workspaceId);
-    go(c.id);
-  }
-
-  function pagesMenu(e: React.MouseEvent) {
-    const r = e.currentTarget.getBoundingClientRect();
-    setMenu({
-      x: r.left, y: r.bottom + 8,
-      items: [
-        ...pages.map((c): MenuItem => ({ label: c.name, onSelect: () => go(c.id) })),
-        { sep: true },
-        { label: "Новая страница", icon: <FilePlus2 size={16} />, onSelect: addPage, hidden: !canEdit },
-        { label: "Дублировать", icon: <Copy size={16} />, hidden: !canEdit, onSelect: async () => go((await data.duplicateCanvas(canvasId)).id) },
-        { label: "Переименовать", icon: <Pencil size={16} />, hidden: !canEdit, onSelect: async () => {
-          const name = prompt("Название страницы", page?.name)?.trim();
-          if (name) { await data.updateCanvas(canvasId, { name: name.slice(0, 100) }); setTick((t) => t + 1); }
-        } },
-        { label: "В корзину", icon: <Trash2 size={16} />, danger: true, hidden: !canEdit || pages.length < 2, onSelect: async () => {
-          await data.trashCanvas(canvasId);
-          toast("Страница в корзине", { label: "Отменить", run: async () => { await data.restoreCanvas(canvasId); go(canvasId); } });
-          go(pages.find((c) => c.id !== canvasId)!.id);
-        } },
-      ],
-    });
+  function togglePages() {
+    setPanel((v) => { try { localStorage.setItem("nexora:pages", v ? "0" : "1"); } catch {} return !v; });
   }
 
   return (
@@ -88,17 +70,21 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
         <Group>
           <IconButton tip="Мои тетради" onClick={() => router.push("/app")}><Home size={18} /></IconButton>
           <Sep />
-          <button className={s.crumb} onClick={pagesMenu}>
-            <span className={s.ws}>{ws?.name ?? "…"}</span>/<span>{page?.name ?? "…"}</span><ChevronDown size={14} />
+          <IconButton tip="Страницы" active={panel} onClick={togglePages}><PanelLeft size={18} /></IconButton>
+          <button className={s.crumb} onClick={togglePages}>
+            <span className={s.ws}>{ws?.name ?? "…"}</span>/<span>{page?.name ?? "…"}</span>
           </button>
-          {canEdit && <IconButton tip="Новая страница" onClick={addPage}><FilePlus2 size={18} /></IconButton>}
         </Group>
       </div>
       <div className={s.tr}>
         <HistoryButtons />
         <Group><SaveIndicator /></Group>
       </div>
-      {menu && <Menu {...menu} onClose={() => setMenu(null)} />}
+      {ready === canvasId && <Toolbar shifted={panel} />}
+      {panel && ws && (
+        <PagesPanel workspaceId={workspaceId} current={canvasId} pages={pages} canEdit={canEdit}
+          onChange={() => setTick((t) => t + 1)} go={go} />
+      )}
     </main>
   );
 }

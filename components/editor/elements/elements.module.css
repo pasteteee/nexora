@@ -1,0 +1,41 @@
+.el { position: absolute; box-sizing: border-box; }
+.text { width: 100%; height: 100%; outline: none; color: var(--ink); cursor: inherit; }
+.text[data-empty]::before { content: attr(data-placeholder); color: var(--ink-3); }
+.editing { cursor: text; user-select: text; -webkit-user-select: text; overflow: auto; }
+.centered { display: flex; flex-direction: column; justify-content: center; position: absolute; inset: 0; padding: 10px 14px; height: auto; }
+.lower { padding-top: 30%; }
+
+.textEl { padding: 6px 2px; }
+.textEl .text { height: auto; min-height: 100%; }
+.note { padding: 14px 16px; border-radius: 4px 4px 14px 4px; box-shadow: var(--shadow-1); overflow: hidden; }
+.node { border-radius: 14px; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ink) 22%, transparent), var(--shadow-1); }
+.card { background: var(--surface); border-radius: var(--radius-m); box-shadow: var(--shadow-1); overflow: hidden; }
+
+.shapeSvg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.shapeSvg * { vector-effect: non-scaling-stroke; }
+
+.formula { width: 100%; height: 100%; display: grid; place-items: center; padding: 8px 12px; color: var(--ink); }
+.katex { max-width: 100%; overflow: hidden; }
+.katex :global(.katex-display) { margin: 0; }
+.formulaError { display: grid; gap: 4px; font-size: 13px; color: var(--danger); text-align: center; }
+.formulaError code { font-size: 14px; color: var(--ink-2); }
+.latexInput { width: 100%; height: 100%; resize: none; border: 0; outline: none; background: transparent; font: 15px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); }
+
+.imageEl { border-radius: 6px; overflow: hidden; box-shadow: var(--shadow-1); background: var(--surface-2); }
+.image { display: block; width: 100%; height: 100%; object-fit: fill; user-select: none; pointer-events: none; }
+.imageLoading { width: 100%; height: 100%; background: linear-gradient(90deg, var(--surface-2), var(--line), var(--surface-2)); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+.imageMissing { width: 100%; height: 100%; display: grid; place-items: center; color: var(--ink-3); }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+.source { display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-content: center; height: 100%; padding: 0 16px; }
+.sourceIcon { grid-row: span 2; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
+.sourceName { font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.meta { font-size: 12.5px; color: var(--ink-3); }
+.meta [data-status="ready"] { color: var(--ok); }
+.meta [data-status="error"], .meta [data-status="requires_ocr"] { color: var(--danger); }
+.meta [data-status="processing"], .meta [data-status="pending"] { color: var(--accent); }
+.fragment { position: relative; height: 100%; padding: 14px 16px 12px 40px; display: flex; flex-direction: column; gap: 8px; }
+.fragment p { margin: 0; flex: 1; overflow: hidden; font-size: 14px; line-height: 1.45; color: var(--ink); }
+.fragmentIcon { position: absolute; left: 14px; top: 16px; color: var(--accent); }
+.latexInput { user-select: text; -webkit-user-select: text; }
+.formulaError span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

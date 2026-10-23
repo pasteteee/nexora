@@ -27,6 +27,8 @@ export type EditorState = {
   apply(patches: Record<string, Partial<CanvasElement>>, kind?: "geometry" | "text", before?: Record<string, CanvasElement>): boolean;
   add(els: CanvasElement[]): boolean;
   remove(ids: string[]): void;
+  /** Несколько изменений одним шагом истории: группировка, разгруппировка */
+  batch(p: { add?: CanvasElement[]; patch?: Record<string, Partial<CanvasElement>>; remove?: string[] }): boolean;
 
   /** История текущей сессии: только собственные действия, не меньше 50 шагов (ТЗ 4.2.4) */
   past: HistoryEntry[];
@@ -139,6 +141,32 @@ export const useEditor = create<EditorState>((set, get) => ({
     ids.forEach((id) => delete els[id]);
     set({ els, selected: get().selected.filter((id) => !ids.includes(id)) });
     markRemoved(ids);
+  },
+
+  batch({ add = [], patch = {}, remove = [] }) {
+    const els = { ...get().els };
+    let bounds = get().bounds;
+    const before: HistoryEntry["before"] = {};
+    const after: HistoryEntry["after"] = {};
+    for (const e of add) {
+      const b = fitBounds(bounds, e);
+      if (!b) return false;
+      bounds = b; before[e.id] = null; after[e.id] = e; els[e.id] = e;
+    }
+    for (const [id, p] of Object.entries(patch)) {
+      if (!els[id]) continue;
+      const next = { ...els[id], ...p };
+      const b = fitBounds(bounds, next);
+      if (!b) return false;
+      bounds = b; before[id] = before[id] === null ? null : els[id]; after[id] = next; els[id] = next;
+    }
+    for (const id of remove) { if (els[id]) { before[id] = els[id]; after[id] = null; delete els[id]; } }
+    set({ els, bounds, selected: get().selected.filter((id) => els[id]) });
+    record(before, after);
+    const changed = Object.keys(after).filter((id) => after[id]);
+    if (changed.length) markChanged(changed);
+    if (remove.length) markRemoved(remove);
+    return true;
   },
 
   undo() {

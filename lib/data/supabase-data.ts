@@ -2,9 +2,11 @@
 /** Реализация DataApi поверх Supabase (Postgres + RLS). Права проверяет база, клиент только отображает. */
 import type { DataApi } from "./api";
 import { ApiError } from "./api";
-import type { Canvas, CanvasElement, Role, WorkspaceCard } from "@/lib/types";
+import type { Canvas, CanvasElement, Role, Source, WorkspaceCard } from "@/lib/types";
 import { TRASH_DAYS } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { imageSize, safeName, validateImage } from "./images";
+import { checkUpload, sourceMime } from "./upload-rules";
 
 type Row = Record<string, unknown>;
 const sb = () => supabaseBrowser();
@@ -65,9 +67,16 @@ async function nextPosition(workspaceId: string) {
   return ((r?.[0]?.position as number) ?? 0) + 1;
 }
 
-const notYet = (what: string) => async (): Promise<never> => {
-  throw new ApiError(`${what}: будет подключено в следующем спринте`, "network");
-};
+const IMAGES = "nexora-images";
+const SOURCES = "nexora-sources";
+
+const toSource = (r: Row): Source => ({
+  id: r.id as string, workspaceId: r.workspace_id as string, originalName: r.original_name as string,
+  mimeType: r.mime_type as string, size: Number(r.size), status: r.status as Source["status"],
+  errorMessage: (r.error_message as string) ?? null, createdAt: r.created_at as string,
+});
+const signed = new Map<string, { url: string; until: number }>();
+
 
 export const supabaseData: DataApi = {
   async listWorkspaces() {
@@ -179,7 +188,47 @@ export const supabaseData: DataApi = {
     if (!ids.length) return;
     check(await sb().from("elements").delete().in("id", ids));
   },
-  listSources: notYet("Источники"),
-  uploadSource: notYet("Источники"),
-  deleteSource: notYet("Источники"),
+  async uploadImage(workspaceId, file) {
+    validateImage(file);
+    const { width, height } = await imageSize(file);
+    // оригинал без изменений; путь начинается с тетради — по нему проверяют политики бакета
+    const path = `${workspaceId}/${crypto.randomUUID()}/${safeName(file.name)}`;
+    const r = await sb().storage.from(IMAGES).upload(path, file, { contentType: file.type, upsert: false });
+    if (r.error) throw new ApiError("Не удалось загрузить изображение", "network");
+    return { name: file.name, mime: file.type, naturalWidth: width, naturalHeight: height, path };
+  },
+  async imageUrl(path) {
+    const hit = signed.get(path);
+    if (hit && hit.until > Date.now()) return hit.url;
+    const r = await sb().storage.from(IMAGES).createSignedUrl(path, 3600);
+    if (r.error || !r.data) throw new ApiError("Изображение недоступно", "not_found");
+    signed.set(path, { url: r.data.signedUrl, until: Date.now() + 50 * 60_000 });
+    return r.data.signedUrl;
+  },
+  async listSources(workspaceId) {
+    const r = check(await sb().from("sources").select("*").eq("workspace_id", workspaceId).order("created_at", { ascending: false }));
+    return (r ?? []).map(toSource);
+  },
+  async uploadSource(workspaceId, file) {
+    const existing = await this.listSources(workspaceId);
+    checkUpload(file, existing);
+    const id = crypto.randomUUID();
+    const path = `${workspaceId}/${id}/${safeName(file.name)}`;
+    const mime = sourceMime(file);
+    // политика бакета требует существующую запись источника с тем же file_path — сначала строка, потом файл
+    const row = check(await sb().from("sources").insert({
+      id, workspace_id: workspaceId, file_path: path, original_name: file.name.slice(0, 512), mime_type: mime, size: file.size,
+    }).select().single());
+    const up = await sb().storage.from(SOURCES).upload(path, file, { contentType: mime, upsert: false });
+    if (up.error) {
+      await sb().from("sources").delete().eq("id", id);
+      throw new ApiError("Не удалось загрузить файл", "network");
+    }
+    return toSource(row);
+  },
+  async deleteSource(id) {
+    const r = check(await sb().from("sources").select("file_path").eq("id", id).single());
+    await sb().storage.from(SOURCES).remove([r!.file_path as string]);
+    check(await sb().from("sources").delete().eq("id", id));
+  },
 };

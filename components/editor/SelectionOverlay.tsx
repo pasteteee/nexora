@@ -1,5 +1,6 @@
 "use client";
 import { bbox, toScreen, type Handle, type Rect } from "@/lib/editor/geometry";
+import { rectOf } from "@/lib/editor/connector";
 import { useEditor } from "@/lib/editor/store";
 import s from "./editor.module.css";
 
@@ -18,7 +19,7 @@ export function SelectionOverlay({ marquee, onHandleDown }: { marquee: Rect | nu
   const canEdit = useEditor((st) => st.canEdit);
 
   const items = selected.map((id) => els[id]).filter(Boolean);
-  const box = bbox(items);
+  const box = bbox(items.map((e) => rectOf(e, els)));
   const scr = (r: Rect) => {
     const p = toScreen(r, camera);
     return { left: p.x, top: p.y, width: r.width * camera.zoom, height: r.height * camera.zoom };
@@ -27,7 +28,7 @@ export function SelectionOverlay({ marquee, onHandleDown }: { marquee: Rect | nu
 
   return (
     <div className={s.overlay}>
-      {items.length > 1 && items.map((e) => <div key={e.id} className={s.selItem} style={scr(e)} />)}
+      {items.length > 1 && items.map((e) => <div key={e.id} className={s.selItem} style={scr(rectOf(e, els))} />)}
       {box && <div className={s.selBox} style={scr(box)} />}
       {box && resizable && HANDLES.map(({ h, fx, fy, cursor }) => {
         const r = scr(box);

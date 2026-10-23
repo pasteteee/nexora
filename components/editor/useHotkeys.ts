@@ -4,7 +4,14 @@ import { toast } from "@/components/ui";
 import { cloneElements } from "@/lib/editor/clone";
 import { bbox, fitRect } from "@/lib/editor/geometry";
 import { BOUNDARY_MESSAGE, useEditor } from "@/lib/editor/store";
+import { arrangeZ, deleteSelection, groupSelection, insertImages, startEditing, ungroupSelection, withGroups } from "@/lib/editor/actions";
+import { rectOf, translate } from "@/lib/editor/connector";
+import { useUi, type Tool } from "@/lib/editor/ui";
 import type { CanvasElement } from "@/lib/types";
+
+export { deleteSelection, withGroups };
+
+const TOOL_KEYS: Record<string, Tool> = { v: "select", t: "text", n: "note", r: "shape", o: "diagram_node", l: "connector", f: "formula" };
 
 const MARK = "nexora/elements";
 let clipboard: CanvasElement[] = [];
@@ -12,17 +19,6 @@ let pasteCount = 0;
 
 const typing = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(t.tagName));
-
-/** Выделенные объекты вместе с участниками их групп и самими группами */
-export function withGroups(ids: string[]): CanvasElement[] {
-  const { els } = useEditor.getState();
-  const set = new Set(ids);
-  for (const id of ids) {
-    const g = els[id]?.groupId;
-    if (g) { set.add(g); Object.values(els).forEach((e) => e.groupId === g && set.add(e.id)); }
-  }
-  return [...set].map((id) => els[id]).filter(Boolean);
-}
 
 export function copySelection() {
   const st = useEditor.getState();
@@ -40,17 +36,10 @@ export function pasteElements(src: CanvasElement[], offset: number) {
   st.select(copies.filter((e) => e.type !== "group").map((e) => e.id));
 }
 
-export function duplicateSelection() { pasteElements(withGroups(useEditor.getState().selected), 24); }
+export const hasClipboard = () => clipboard.length > 0;
+export function pasteClipboard() { pasteCount++; pasteElements(clipboard, 24 * pasteCount); }
 
-export function deleteSelection() {
-  const st = useEditor.getState();
-  if (!st.canEdit || !st.selected.length) return;
-  const ids = withGroups(st.selected).map((e) => e.id);
-  // связи с удалёнными объектами удаляются вместе с ними
-  const links = Object.values(st.els).filter((e) => e.type === "connector" &&
-    (ids.includes(e.content.fromId as string) || ids.includes(e.content.toId as string))).map((e) => e.id);
-  st.remove([...new Set([...ids, ...links])]);
-}
+export function duplicateSelection() { pasteElements(withGroups(useEditor.getState().selected), 24); }
 
 /** Горячие клавиши редактора (подсказки — в меню и тултипах) */
 export function useHotkeys(view: () => { width: number; height: number }) {
@@ -67,7 +56,15 @@ export function useHotkeys(view: () => { width: number; height: number }) {
       if (mod && k === "c") { copySelection(); return; }
       if (mod && k === "x") { copySelection(); deleteSelection(); return; }
       if (mod && k === "d") { e.preventDefault(); duplicateSelection(); return; }
-      if (e.key === "Escape") { st.select([]); return; }
+      if (mod && k === "g") { e.preventDefault(); if (e.shiftKey) ungroupSelection(); else groupSelection(); return; }
+      if (e.key === "]" || e.key === "[") {
+        e.preventDefault();
+        arrangeZ(e.key === "]" ? (mod ? "front" : "forward") : (mod ? "back" : "backward"));
+        return;
+      }
+      if (e.key === "Escape") { useUi.getState().setTool("select"); st.select([]); return; }
+      if (e.key === "Enter" && st.selected.length === 1) { e.preventDefault(); startEditing(st.selected[0]); return; }
+      if (!mod && !e.altKey && !e.shiftKey && TOOL_KEYS[k] && st.canEdit) { useUi.getState().setTool(TOOL_KEYS[k]); return; }
       if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); deleteSelection(); return; }
 
       if (e.key.startsWith("Arrow") && st.selected.length && st.canEdit) {
@@ -76,7 +73,7 @@ export function useHotkeys(view: () => { width: number; height: number }) {
         const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
         const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
         const items = withGroups(st.selected);
-        if (!st.apply(Object.fromEntries(items.map((x) => [x.id, { x: x.x + dx, y: x.y + dy }])))) toast(BOUNDARY_MESSAGE);
+        if (!st.apply(Object.fromEntries(items.map((x) => [x.id, translate(x, dx, dy)])))) toast(BOUNDARY_MESSAGE);
         return;
       }
 
@@ -86,17 +83,19 @@ export function useHotkeys(view: () => { width: number; height: number }) {
       else if (!mod && e.key === "-") st.zoomTo(center, st.camera.zoom / 1.25);
       else if (!mod && e.key === "0") st.zoomTo(center, 1);
       else if (e.shiftKey && e.code === "Digit1") {
-        const box = bbox(Object.values(st.els));
+        const box = bbox(Object.values(st.els).map((x) => rectOf(x, st.els)));
         if (box) st.setCamera(fitRect(box, v));
       } else if (e.shiftKey && e.code === "Digit2") {
-        const box = bbox(withGroups(st.selected));
+        const box = bbox(withGroups(st.selected).map((x) => rectOf(x, st.els)));
         if (box) st.setCamera(fitRect(box, v));
       }
     };
 
-    // вставка: свои объекты из буфера, иначе — текст новой заметкой (картинки — спринт 4)
+    // вставка: изображения из буфера, свои объекты, иначе — объекты из внутреннего буфера
     const onPaste = (e: ClipboardEvent) => {
       if (typing(e.target)) return;
+      const images = [...(e.clipboardData?.files ?? [])].filter((f) => f.type.startsWith("image/"));
+      if (images.length) { e.preventDefault(); insertImages(images); return; }
       const text = e.clipboardData?.getData("text/plain") ?? "";
       try {
         const parsed = JSON.parse(text);

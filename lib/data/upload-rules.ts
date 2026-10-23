@@ -21,6 +21,13 @@ export function extOf(name: string) {
   return name.split(".").pop()?.toLowerCase() ?? "";
 }
 
+/** MIME для записи источника: браузер часто не знает тип .md */
+export function sourceMime(file: { name: string; type: string }) {
+  const ext = extOf(file.name);
+  if (ext === "md") return "text/markdown";
+  return ALLOWED[ext]?.[0] ?? file.type;
+}
+
 export function checkUpload(file: { name: string; type: string; size: number }, existing: { size: number }[]) {
   const ext = extOf(file.name);
   const mimes = ALLOWED[ext];
