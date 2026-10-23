@@ -20,7 +20,8 @@
 ## Миграции
 | Файл | Что делает |
 |---|---|
-| `0001_init.sql` | таблицы, индексы, триггеры |
-| `0002_rls.sql` | политики доступа по матрице ролей |
-| `0003_auth_profile.sql` | профиль создаётся вместе с пользователем |
-| `0004_duplicate_canvas.sql` | `duplicate_canvas(src)` — копия страницы с элементами |
+| `20261017103421_nexora_schema.sql` | схема, RLS, RPC, хранилище (Антон, PR #3) |
+| `20261017103932_nexora_foreign_key_indexes.sql` | индексы внешних ключей |
+| `20261023100000_nexora_pages.sql` | имя профиля из регистрации, корзина страниц (`canvases.deleted_at`), `duplicate_canvas(p_canvas_id)` |
+
+Удаление и восстановление тетради — RPC `soft_delete_workspace` / `restore_workspace`.
