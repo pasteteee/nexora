@@ -1,0 +1,37 @@
+.editor { flex: 1; min-height: 0; height: 100%; overflow: auto; overscroll-behavior: contain; background: var(--surface); color: var(--ink); scrollbar-width: thin; }
+.document { width: min(100%, 784px); margin: 0 auto; padding: 28px 48px 180px; }
+.blocks { display: flex; flex-direction: column; gap: 3px; }
+.block { position: relative; min-width: 0; border-radius: 5px; padding: 3px 0; scroll-margin: 80px 0; }
+.block[data-selected] { background: color-mix(in srgb, var(--accent) 3%, transparent); }
+.controls { position: absolute; left: -32px; top: 5px; display: flex; align-items: flex-start; opacity: 0; z-index: 2; }
+.block:hover .controls, .block:focus-within .controls { opacity: 1; }
+.controls button { border: 0; background: var(--surface); color: var(--ink-3); border-radius: 4px; width: 26px; height: 26px; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.controls button:hover { color: var(--ink); background: var(--surface-2); }
+.controls button:disabled { opacity: .25; cursor: default; }
+.controls .grip { background: transparent; cursor: grab; }
+.controls .grip:active { cursor: grabbing; }
+.blockMenu { display: none; position: absolute; bottom: 100%; left: 0; padding: 4px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); border-radius: 7px; gap: 2px; }
+.controls:hover .blockMenu, .controls:focus-within .blockMenu { display: flex; }
+.input { display: block; width: 100%; padding: 0; margin: 0; min-height: 28px; border: 0; outline: none; box-shadow: none; background: transparent; color: var(--ink); font: 16px/1.7 var(--font); resize: none; overflow: hidden; white-space: pre-wrap; overflow-wrap: anywhere; }
+.input::placeholder { color: var(--ink-3); }
+.markdown { min-height: 28px; outline: none; font: 16px/1.7 var(--font); white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; }
+.markdown:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.markdown h1, .markdown h2, .markdown h3 { white-space: normal; line-height: 1.3; font-weight: 650; margin: .5em 0 .3em; }
+.markdown h1 { font-size: 1.9em; } .markdown h2 { font-size: 1.5em; } .markdown h3 { font-size: 1.2em; }
+.markdown blockquote { margin: 8px 0; padding: 2px 0 2px 16px; border-left: 3px solid var(--accent); color: var(--ink-2); }
+.markdown pre { margin: 8px 0; background: var(--surface-2); border-radius: 6px; padding: 16px; white-space: pre-wrap; }
+.markdown code { font: .9em/1.5 ui-monospace, monospace; background: var(--surface-2); border-radius: 3px; padding: 2px 4px; }
+.markdown pre code { padding: 0; }
+.image { margin: 8px 0; min-height: 40px; border-radius: 6px; overflow: hidden; }
+.image img { width: 100%; height: auto; max-height: 720px; object-fit: contain; }
+.formula { min-height: 80px; padding: 12px; background: var(--surface-2); border-radius: 6px; margin: 8px 0; }
+.source { margin: 8px 0; padding: 16px 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.source p { white-space: pre-wrap; }
+.legacy { padding: 12px; border-left: 2px solid var(--line); color: var(--ink-2); }
+.insert { display: flex; flex-wrap: wrap; gap: 4px; margin: 24px 0 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.insert button { display: flex; gap: 7px; align-items: center; border: 0; background: transparent; color: var(--ink-3); font: 12px var(--font); padding: 7px 9px; border-radius: 5px; cursor: pointer; }
+.insert button:hover { background: var(--surface-2); color: var(--ink); }
+.hint { font-size: 11px; line-height: 1.6; color: var(--ink-3); margin: 0 0 20px; }
+.dropTarget::before { content: ""; position: absolute; top: -2px; left: 0; right: 0; border-top: 2px solid var(--accent); }
+@media (max-width: 700px) { .document { padding: 20px 28px 140px 36px; } .controls { opacity: 1; left: -29px; } .input, .markdown { font-size: 15px; } }
+@media (prefers-reduced-motion: reduce) { .editor { scroll-behavior: auto; } }

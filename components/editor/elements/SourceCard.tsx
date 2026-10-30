@@ -12,13 +12,13 @@ const icon = (mime: string) =>
 
 /** Ссылка на источник: название, тип и статус; ссылка на фрагмент — текст и страница */
 export function SourceCard({ el }: { el: CanvasElement }) {
-  const c = el.content as { name?: string; mime?: string; status?: SourceStatus; text?: string; page?: number };
+  const c = el.content as { name?: string; mime?: string; status?: SourceStatus; text?: string; page?: number; pageRef?: string };
   if (el.type === "source_fragment") {
     return (
       <div className={s.fragment}>
         <Quote size={16} className={s.fragmentIcon} />
         <p>{c.text}</p>
-        <span className={s.meta}>{c.name}{c.page ? ` · с. ${c.page}` : ""}</span>
+        <span className={s.meta}>{c.name}{c.pageRef ? ` · ${c.pageRef}` : c.page ? ` · с. ${c.page}` : ""}</span>
       </div>
     );
   }
