@@ -10,6 +10,7 @@ import { SaveIndicator } from "./SaveIndicator";
 import { HistoryButtons } from "./HistoryButtons";
 import { PagesPanel } from "./PagesPanel";
 import { Toolbar } from "./Toolbar";
+import { KnowledgePanel } from "@/components/knowledge/KnowledgePanel";
 import { create, startEditing } from "@/lib/editor/actions";
 import { useUi } from "@/lib/editor/ui";
 import type { Canvas, WorkspaceCard } from "@/lib/types";
@@ -105,6 +106,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
       </nav>
       {ready === canvasId && canEdit && <button className={s.writeButton} onClick={addText}><Plus size={16} />Текст · Markdown</button>}
       {ready === canvasId && <Toolbar shifted={panel} />}
+      {ready === canvasId && <KnowledgePanel workspaceId={workspaceId} canvasId={canvasId} canEdit={canEdit} />}
       {panel && ws && (
         <PagesPanel workspaceId={workspaceId} current={canvasId} pages={pages} canEdit={canEdit}
           onChange={() => setTick((t) => t + 1)} go={go} />

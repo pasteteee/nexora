@@ -198,6 +198,7 @@ function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
       if (!reader) throw new Error("Нет ответа");
       const decoder = new TextDecoder();
       let pending = "";
+      let completed = false;
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -209,9 +210,12 @@ function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
           const event = JSON.parse(line);
           if (event.type === "text") setAnswer((a) => a + event.text);
           if (event.type === "sources") setCitations(event.sources);
+          if (event.type === "done") completed = true;
           if (event.type === "error") throw new Error(event.error);
         }
       }
+      if (!completed && !controller.signal.aborted)
+        throw new Error("Ответ прервался. Сохранённый черновик можно скопировать или запросить ответ повторно.");
     } catch (e) {
       if (!controller.signal.aborted) setError((e as Error).message);
     } finally {
@@ -228,7 +232,7 @@ function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
     );
     const element = makeElement(
       source ? "source_fragment" : "text",
-      { x: 400, y: y + 100 },
+      { x: 0, y: y + 100 },
       canvasId,
       topZ(st.els),
       {
@@ -243,7 +247,13 @@ function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
         sourceId: source?.source_id || null,
       },
     );
-    if (st.add([element])) st.select([element.id]);
+    if (st.add([element])) {
+      st.select([element.id]);
+      const viewport = document.querySelector<HTMLElement>("[data-notebook-viewport]");
+      st.setCamera({ ...st.camera, x: (viewport?.clientWidth ?? 900) / 2,
+        y: 100 - element.y * st.camera.zoom });
+      setOpen(false);
+    }
   }
   function applyReplacement() {
     const st = useEditor.getState();
