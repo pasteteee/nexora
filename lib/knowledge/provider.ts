@@ -47,12 +47,16 @@ export async function* generate(
 ): AsyncIterable<string> {
   const key = process.env.AI_API_KEY;
   if (!key) throw new Error("Не настроен AI_API_KEY");
-  const anthropic = (process.env.AI_PROVIDER || "anthropic") === "anthropic";
+  const provider = process.env.AI_PROVIDER || "anthropic";
+  if (!["anthropic", "openai", "xai"].includes(provider))
+    throw new Error("Неизвестный AI_PROVIDER");
+  const anthropic = provider === "anthropic";
+  const xai = provider === "xai";
   const response = await checked(
     await fetch(
       anthropic
         ? "https://api.anthropic.com/v1/messages"
-        : "https://api.openai.com/v1/chat/completions",
+        : xai ? "https://api.x.ai/v1/responses" : "https://api.openai.com/v1/chat/completions",
       {
         method: "POST",
         signal: withTimeout(signal),
@@ -78,7 +82,13 @@ export async function* generate(
                   .join("\n"),
                 messages: messages.filter((m) => m.role !== "system"),
               }
-            : {
+            : xai ? {
+                model: process.env.AI_MODEL || "grok-4.7",
+                input: messages,
+                max_output_tokens: 4096,
+                store: false,
+                stream: true,
+              } : {
                 model: process.env.AI_MODEL || "gpt-4.1-mini",
                 max_tokens: 2000,
                 stream: true,
@@ -96,12 +106,19 @@ export async function* generate(
   function parseLine(line: string): string | undefined {
     if (!line.startsWith("data: ")) return;
     if (line.slice(6).trim() === "[DONE]") {
-      if (!anthropic) completed = true;
+      if (!anthropic && !xai) completed = true;
       return;
     }
     const event = JSON.parse(line.slice(6));
     if (event.error || event.type === "error")
       throw new Error("Ошибка сервиса ИИ");
+    if (xai) {
+      if (["response.failed", "response.incomplete"].includes(event.type))
+        throw new Error("Ответ сервиса ИИ не завершён");
+      if (event.type === "response.completed") completed = true;
+      return event.type === "response.output_text.delta" && typeof event.delta === "string"
+        ? event.delta : undefined;
+    }
     if (anthropic && event.type === "message_stop") completed = true;
     const text = anthropic
       ? event.delta?.text
