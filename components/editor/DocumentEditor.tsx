@@ -86,6 +86,19 @@ export function DocumentEditor({ title }: { title?: string }) {
     st.batch({ add: [el], patch: patches });
     activate(el.id);
   }
+  function removeBlock(el: CanvasElement) {
+    const st = useEditor.getState();
+    if (documentBlocks(st.els).length > 1) { st.remove([el.id]); return; }
+    // Keep a writable paragraph, and undo a final block deletion as one operation.
+    if (isTextBlock(el)) {
+      st.apply({ [el.id]: { content: { ...el.content, text: "" } } }, "text");
+      activate(el.id);
+    } else {
+      const replacement = makeElement("text", { x: 0, y: 0 }, el.canvasId, 1, { content: { text: "", documentOrder: 0 } });
+      st.batch({ add: [replacement], remove: [el.id] });
+      activate(replacement.id);
+    }
+  }
   function reorder(id: string, index: number) {
     const st = useEditor.getState();
     st.apply(orderPatches(moveBlock(documentBlocks(st.els), id, index)));
@@ -144,7 +157,7 @@ export function DocumentEditor({ title }: { title?: string }) {
               <button aria-label="Переместить блок вверх" disabled={index === 0} onClick={() => reorder(el.id, index - 1)}><ArrowUp size={14} /></button>
               <button aria-label="Переместить блок вниз" disabled={index === blocks.length - 1} onClick={() => reorder(el.id, index + 1)}><ArrowDown size={14} /></button>
               <button aria-label="Добавить текст после блока" onClick={() => addAfter(el.id)}><Plus size={14} /></button>
-              <button aria-label="Удалить блок" onClick={() => useEditor.getState().remove([el.id])}><Trash2 size={14} /></button>
+              <button aria-label="Удалить блок" onClick={() => removeBlock(el)}><Trash2 size={14} /></button>
             </div>
           </div>}
           {isTextBlock(el) ? editing ? <TextInput el={el} focus={focus} onFocus={() => useEditor.getState().select([el.id])} onBlur={() => setActive(null)} onKey={(e) => onKey(e, el, index)} />
