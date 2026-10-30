@@ -31,6 +31,7 @@ for (const [name, value] of Object.entries(process.env)) {
 }
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["pdfjs-dist", "@napi-rs/canvas"],
   reactStrictMode: true,
   poweredByHeader: false,
   devIndicators: false,
