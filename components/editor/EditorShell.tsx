@@ -1,7 +1,7 @@
 "use client";
 import { notFound, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, PanelLeft } from "lucide-react";
+import { Home, PanelLeft, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Group, IconButton, Sep } from "@/components/ui";
 import { data } from "@/lib/data";
 import { loadCamera, useEditor } from "@/lib/editor/store";
@@ -10,6 +10,7 @@ import { SaveIndicator } from "./SaveIndicator";
 import { HistoryButtons } from "./HistoryButtons";
 import { PagesPanel } from "./PagesPanel";
 import { Toolbar } from "./Toolbar";
+import { create, startEditing } from "@/lib/editor/actions";
 import { useUi } from "@/lib/editor/ui";
 import type { Canvas, WorkspaceCard } from "@/lib/types";
 import s from "./editor.module.css";
@@ -21,7 +22,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
   const [pages, setPages] = useState<Canvas[]>([]);
   const [missing, setMissing] = useState(false);
   // открыта ли панель страниц — настройка пользователя (AuthGate рендерит редактор только в браузере)
-  const [panel, setPanel] = useState(() => { try { return localStorage.getItem("nexora:pages") === "1"; } catch { return false; } });
+  const [panel, setPanel] = useState(() => { try { return localStorage.getItem("nexora:pages") !== "0"; } catch { return true; } });
   const [tick, setTick] = useState(0);
   const [ready, setReady] = useState<string | null>(null);
 
@@ -59,13 +60,22 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
   const canEdit = ws?.role !== "viewer";
   const go = (id: string) => router.push(`/app/w/${workspaceId}/p/${id}`);
 
+  const index = pages.findIndex((p) => p.id === canvasId);
+
+  function addText() {
+    const items = Object.values(useEditor.getState().els);
+    const y = Math.max(80, ...items.map((el) => el.y + el.height + 24));
+    const el = create("text", { x: 0, y: y + 24 }, { width: 680, height: 48 });
+    if (el) startEditing(el.id);
+  }
+
   function togglePages() {
     setPanel((v) => { try { localStorage.setItem("nexora:pages", v ? "0" : "1"); } catch {} return !v; });
   }
 
   return (
-    <main className={s.root}>
-      {ready === canvasId && <CanvasView />}
+    <main className={`${s.root} ${panel ? s.withPages : ""}`}>
+      {ready === canvasId && <CanvasView title={page?.name ?? "Страница"} />}
       <div className={s.tl}>
         <Group>
           <IconButton tip="Мои тетради" onClick={() => router.push("/app")}><Home size={18} /></IconButton>
@@ -80,6 +90,13 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
         <HistoryButtons />
         <Group><SaveIndicator /></Group>
       </div>
+      <nav className={s.pageTabs} aria-label="Страницы тетради">
+        <button aria-label="Предыдущая страница" disabled={index <= 0} onClick={() => go(pages[index - 1].id)}><ChevronLeft size={16} /></button>
+        <div className={s.tabList}>{pages.map((p, i) => <button key={p.id} aria-current={p.id === canvasId ? "page" : undefined} onClick={() => go(p.id)}><span>{String(i + 1).padStart(2, "0")}</span>{p.name}</button>)}</div>
+        <button aria-label="Следующая страница" disabled={index < 0 || index >= pages.length - 1} onClick={() => go(pages[index + 1].id)}><ChevronRight size={16} /></button>
+        {canEdit && <button aria-label="Добавить страницу" onClick={async () => { const c = await data.createCanvas(workspaceId); setTick((t) => t + 1); go(c.id); }}><Plus size={16} /></button>}
+      </nav>
+      {ready === canvasId && canEdit && <button className={s.writeButton} onClick={addText}><Plus size={16} />Текст · Markdown</button>}
       {ready === canvasId && <Toolbar shifted={panel} />}
       {panel && ws && (
         <PagesPanel workspaceId={workspaceId} current={canvasId} pages={pages} canEdit={canEdit}

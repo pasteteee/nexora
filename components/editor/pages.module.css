@@ -26,3 +26,4 @@
 .trashRow { display: flex; align-items: center; gap: 8px; height: 36px; padding-left: 10px; font-size: 13.5px; color: var(--ink-2); }
 .when { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
 .empty { display: grid; place-items: center; height: 48px; color: var(--ink-3); }
+.panel { top: 62px; bottom: 16px; left: 14px; width: 232px; background: transparent; box-shadow: none; border-radius: 0; border-right: 1px solid var(--line); padding-right: 10px; }

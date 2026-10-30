@@ -66,3 +66,24 @@
 .size:hover { background: var(--surface-2); color: var(--ink); }
 .anchor { position: relative; display: inline-flex; }
 .dropHint { position: absolute; inset: 12px; border: 2px dashed var(--accent); border-radius: var(--radius-l); background: var(--accent-soft); pointer-events: none; z-index: 40; display: grid; place-items: center; color: var(--accent); }
+.root { background: var(--surface-2); }
+.viewport { top: 108px; bottom: 58px; left: 76px; right: 16px; border-radius: 12px; transition: left 180ms ease; }
+.withPages .viewport { left: 262px; }
+.paper { position: absolute; background-color: var(--surface); box-shadow: 0 4px 32px #0000000a; border: 1px solid var(--line); border-radius: 4px; pointer-events: none; }
+.paperHeading { padding: 24px 100px 0; color: var(--ink); }
+.paperHeading > span { font-size: 10px; letter-spacing: .16em; color: var(--ink-3); }
+.paperHeading h1 { margin: 8px 0 4px; font-size: 30px; line-height: 1.2; font-weight: 650; }
+.paperHeading p { margin: 0; color: var(--ink-3); font-size: 11px; }
+.boundary { display: none; }
+.pageTabs { position: absolute; top: 62px; left: 76px; right: 16px; height: 36px; display: flex; gap: 4px; align-items: stretch; }
+.withPages .pageTabs { left: 262px; }
+.pageTabs button { display: flex; align-items: center; gap: 9px; border: 0; border-radius: 7px; background: transparent; color: var(--ink-2); padding: 0 10px; cursor: pointer; font: inherit; font-size: 12px; white-space: nowrap; }
+.pageTabs button:hover { background: var(--surface); }
+.pageTabs button:disabled { opacity: .3; cursor: default; }
+.pageTabs button[aria-current] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px #00000008; }
+.pageTabs button span { color: var(--ink-3); font-size: 10px; }
+.tabList { display: flex; gap: 4px; flex: 1; overflow-x: auto; scrollbar-width: thin; }
+.writeButton { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink-2); height: 34px; padding: 0 16px; cursor: pointer; font: inherit; font-size: 12px; }
+@media (max-width: 760px) { .withPages .viewport, .withPages .pageTabs { left: 76px; } .crumb { max-width: 150px; } .tr { top: auto; bottom: 12px; } .writeButton { left: 80px; transform: none; } }
+.documentScroll { position: absolute; top: 0; right: 0; bottom: 0; width: 14px; overflow-y: scroll; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.documentScroll > div { width: 1px; pointer-events: none; }

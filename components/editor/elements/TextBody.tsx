@@ -4,6 +4,7 @@ import { useEditor } from "@/lib/editor/store";
 import { MAX_TEXT, textCss } from "@/lib/editor/styles";
 import { useUi } from "@/lib/editor/ui";
 import type { CanvasElement } from "@/lib/types";
+import { Markdown } from "./Markdown";
 import s from "./elements.module.css";
 
 /** Текст объекта; двойной клик — редактирование на месте, сохранение при потере фокуса */
@@ -24,6 +25,20 @@ export function TextBody({ el, placeholder, className }: { el: CanvasElement; pl
     // текст из состояния подставляется только при входе в редактирование
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (editing || el.type !== "text" || !node) return;
+    const observer = new ResizeObserver(() => {
+      const st = useEditor.getState();
+      const cur = st.els[el.id];
+      if (st.canEdit && cur && node.scrollHeight + 12 > cur.height) {
+        st.apply({ [el.id]: { height: Math.ceil(node.scrollHeight + 12) } }, "text");
+      }
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [editing, el.id, el.type, text]);
 
   function commit() {
     const node = ref.current;
@@ -69,8 +84,8 @@ export function TextBody({ el, placeholder, className }: { el: CanvasElement; pl
     );
   }
   return (
-    <div className={`${s.text} ${className ?? ""}`} style={textCss(el.style)} data-empty={!text || undefined} data-placeholder={placeholder}>
-      {text}
+    <div ref={ref} className={`${s.text} ${el.type === "text" ? s.markdown : ""} ${className ?? ""}`} style={textCss(el.style)} data-empty={!text || undefined} data-placeholder={placeholder}>
+      {el.type === "text" ? <Markdown text={text} /> : text}
     </div>
   );
 }
