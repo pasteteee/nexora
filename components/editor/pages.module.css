@@ -1,29 +1,27 @@
-/* Панель страниц — плавающая карточка слева, без рамок, только тень */
-.panel {
-  position: absolute; top: 62px; left: 14px; bottom: 62px; width: 232px; z-index: 29;
-  display: flex; flex-direction: column; padding: 6px;
-  background: var(--surface); border-radius: var(--radius-l); box-shadow: var(--shadow-2);
-  animation: slide var(--t-mid) var(--ease) both;
-}
-@keyframes slide { from { opacity: 0; transform: translateX(-12px); } }
-.list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; display: grid; align-content: start; gap: 2px; touch-action: none; }
-.row {
-  display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 6px 0 10px;
-  border-radius: var(--radius-s); cursor: pointer; user-select: none; font-size: 14px;
-  transition: background var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
-}
+.panel { height: 100%; min-height: 0; display: flex; flex-direction: column; padding: 24px 12px 14px; color: var(--ink-2); }
+.heading { display: flex; align-items: center; gap: 9px; padding: 0 10px 18px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.heading > svg { color: var(--ink-3); }
+.count { margin-left: auto; color: var(--ink-3); font-size: 11px; font-weight: 400; }
+.addPage { display: flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px; margin: 0 4px 16px; background: var(--surface); font-size: 12px; color: var(--ink-2); cursor: pointer; }
+.addPage:hover { border-color: var(--accent); color: var(--accent); }
+.list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; display: grid; align-content: start; gap: 3px; touch-action: pan-y; }
+.row { display: flex; align-items: center; gap: 9px; min-height: 37px; padding: 0 7px 0 10px; border-radius: 6px; cursor: default; user-select: none; font-size: 13px; position: relative; }
 .row:hover { background: var(--surface-2); }
-.row[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 550; }
-.row[data-dragging] { background: var(--surface); box-shadow: var(--shadow-2); transform: scale(1.02); cursor: grabbing; z-index: 1; }
-.num { width: 18px; text-align: right; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex: none; }
+.row[aria-current=page] { background: var(--accent-soft); color: var(--accent); font-weight: 550; }
+.row[data-dragging] { box-shadow: var(--shadow-1); background: var(--surface-2); cursor: grabbing; }
+.num { width: 15px; font-size: 10px; font-variant-numeric: tabular-nums; color: var(--ink-3); flex: none; }
 .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rename { flex: 1; min-width: 0; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; font: inherit; background: var(--surface); box-shadow: 0 0 0 2px var(--accent); color: var(--ink); outline: none; }
-.more { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 999px; background: none; color: var(--ink-3); cursor: pointer; opacity: 0; transition: opacity var(--t-fast); }
-.row:hover .more, .more:focus-visible { opacity: 1; }
-.more:hover { background: var(--line); color: var(--ink); }
-.foot { display: flex; gap: 2px; padding-top: 6px; margin-top: 6px; box-shadow: 0 -1px 0 var(--line); }
-.trash { display: grid; gap: 2px; max-height: 40%; overflow-y: auto; padding-top: 6px; margin-top: 6px; box-shadow: 0 -1px 0 var(--line); }
-.trashRow { display: flex; align-items: center; gap: 8px; height: 36px; padding-left: 10px; font-size: 13.5px; color: var(--ink-2); }
-.when { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
-.empty { display: grid; place-items: center; height: 48px; color: var(--ink-3); }
-.panel { top: 62px; bottom: 16px; left: 14px; width: 232px; background: transparent; box-shadow: none; border-radius: 0; border-right: 1px solid var(--line); padding-right: 10px; }
+.pageButton { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; height: 37px; padding: 0; border: 0; color: inherit; font: inherit; background: transparent; cursor: pointer; }
+.rename { flex: 1; min-width: 0; height: 28px; padding: 0 6px; border: 0; border-radius: 4px; background: var(--surface); font: inherit; color: var(--ink); outline: 1px solid var(--accent); }
+.more { display: grid; place-items: center; width: 24px; height: 25px; padding: 0; border: 0; border-radius: 5px; color: var(--ink-3); background: transparent; opacity: 0; cursor: pointer; }
+.row:hover .more, .row:focus-within .more { opacity: 1; }
+.more:hover { color: var(--ink); background: var(--line); }
+.foot { margin-top: auto; border-top: 1px solid var(--line); padding: 12px 4px 0; }
+.trashButton { width: 100%; border: 0; border-radius: 6px; background: transparent; color: var(--ink-3); padding: 8px; display: flex; align-items: center; gap: 9px; text-align: left; font: inherit; font-size: 12px; cursor: pointer; }
+.trashButton:hover, .trashButton[aria-pressed=true] { background: var(--surface-2); color: var(--ink-2); }
+.trash { display: grid; gap: 3px; max-height: 40%; overflow-y: auto; padding: 10px 4px; border-top: 1px solid var(--line); margin-top: 10px; }
+.trashHeading { font-size: 11px; color: var(--ink-3); padding: 0 5px 5px; }
+.trashRow { display: flex; align-items: center; gap: 6px; min-height: 33px; padding-left: 5px; font-size: 12px; }
+.when { font-size: 10px; color: var(--ink-3); white-space: nowrap; }
+.empty { display: grid; place-items: center; height: 45px; color: var(--ink-3); }
+@media (max-width: 800px) { .panel { padding-top: 14px; } .heading { padding-bottom: 10px; } .addPage { display: none; } .foot { padding-top: 4px; } }

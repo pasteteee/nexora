@@ -98,9 +98,23 @@ export function create(type: CanvasElement["type"], at: Pt, over: Partial<Canvas
 }
 
 /** Изображения: выбор файла, перетаскивание, вставка из буфера (ТЗ 4.2.5) */
+async function insertOnOriginalPage(canvasId: string, type: CanvasElement["type"], at: Pt, over: Partial<CanvasElement>) {
+  if (st().canvasId === canvasId) { create(type, at, over); return; }
+  // An upload may finish after navigation. Persist to its original page rather
+  // than accidentally inserting into the document that is currently open.
+  const existing = await data.listElements(canvasId);
+  if (st().canvasId === canvasId) { create(type, at, over); return; }
+  const zIndex = topZ(Object.fromEntries(existing.map((el) => [el.id, el])));
+  const el = makeElement(type, at, canvasId, zIndex, over);
+  await data.upsertElements([el]);
+  if (st().canvasId === canvasId && st().canEdit) st().add([el]);
+  toast("Файл добавлен на исходную страницу");
+}
+
 export async function insertImages(files: File[], at = viewCenter()) {
   const ws = useUi.getState().workspaceId;
-  if (!ws || !st().canEdit) return;
+  const canvasId = st().canvasId;
+  if (!ws || !st().canEdit || !canvasId) return;
   let dx = 0;
   for (const file of files) {
     if (file.size > MAX_FILE) { toast("Файл больше 25 МиБ"); continue; }
@@ -108,7 +122,7 @@ export async function insertImages(files: File[], at = viewCenter()) {
       const img: ImageContent = await data.uploadImage(ws, file);
       const k = Math.min(1, 480 / Math.max(img.naturalWidth, img.naturalHeight));
       const width = Math.max(16, Math.round(img.naturalWidth * k)), height = Math.max(16, Math.round(img.naturalHeight * k));
-      create("image", { x: at.x + dx, y: at.y + dx }, { width, height, content: { ...img }, style: {} });
+      await insertOnOriginalPage(canvasId, "image", { x: at.x + dx, y: at.y + dx }, { width, height, content: { ...img }, style: {} });
       dx += 32;
     } catch (e) {
       toast((e as Error).message || "Не удалось добавить изображение");
@@ -140,12 +154,13 @@ export function startEditing(id: string) {
 /** Файлы-источники: PDF, PPTX, TXT, MD, PNG, JPEG → источник тетради и карточка в точке (ТЗ 4.2.5–4.2.6) */
 export async function insertSources(files: File[], at = viewCenter()) {
   const ws = useUi.getState().workspaceId;
-  if (!ws || !st().canEdit) return;
+  const canvasId = st().canvasId;
+  if (!ws || !st().canEdit || !canvasId) return;
   let dy = 0;
   for (const file of files) {
     try {
       const src = await data.uploadSource(ws, file);
-      create("source", { x: at.x, y: at.y + dy }, {
+      await insertOnOriginalPage(canvasId, "source", { x: at.x, y: at.y + dy }, {
         width: 280, height: 72, sourceId: src.id,
         content: { name: src.originalName, mime: src.mimeType, status: src.status, size: src.size },
       });

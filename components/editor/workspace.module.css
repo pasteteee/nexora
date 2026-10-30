@@ -1,0 +1,41 @@
+.workspace { position: fixed; inset: 0; display: flex; flex-direction: column; min-width: 0; background: var(--surface); color: var(--ink); }
+.header { height: 58px; flex: none; padding: 0 20px 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.identity, .headerActions { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.identity { flex: 1; }
+.brand { display: inline-flex; align-items: center; gap: 7px; font-size: 17px; font-weight: 700; letter-spacing: -.6px; }
+.brand > span { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; margin-top: 8px; }
+.notebookName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--ink-2); }
+.headerDivider { height: 18px; width: 1px; flex: none; background: var(--line); margin: 0 4px; }
+.iconButton { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); cursor: pointer; }
+.iconButton:hover, .toggle:hover { background: var(--surface-2); color: var(--ink); }
+.toggle { display: flex; align-items: center; gap: 7px; border: 0; border-radius: 7px; height: 33px; padding: 0 10px; background: transparent; color: var(--ink-2); font-size: 12px; cursor: pointer; white-space: nowrap; }
+.toggle[aria-pressed=true] { background: var(--accent-soft); color: var(--accent); }
+.headerActions { gap: 4px; }
+.headerActions :global([role=toolbar]) { border-radius: 7px; background: transparent; box-shadow: none; }
+.layout { --pages: 0px; --knowledge: 0px; display: grid; grid-template-columns: var(--pages) minmax(0,1fr) var(--knowledge); flex: 1; min-height: 0; min-width: 0; }
+.layout[data-pages=true] { --pages: 232px; }
+.layout[data-knowledge=true] { --knowledge: 344px; }
+.pagesDock { grid-column: 1; grid-row: 1; min-height: 0; min-width: 0; overflow: hidden; background: var(--bg); border-right: 1px solid var(--line); }
+.document { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+.knowledgeDock { grid-column: 3; grid-row: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg); }
+.pageBar { display: flex; align-items: center; justify-content: space-between; gap: 15px; height: 46px; padding: 0 25px; color: var(--ink-3); font-size: 12px; flex: none; }
+.pageBar > div { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pageBar > div > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pageNavigation { display: flex; align-items: center; gap: 3px; }
+.pageNavigation > span { font-size: 11px; color: var(--ink-3); white-space: nowrap; margin-right: 7px; font-variant-numeric: tabular-nums; }
+.pageNavigation button { height: 27px; width: 27px; display: grid; place-items: center; border: 0; border-radius: 5px; background: transparent; cursor: pointer; color: var(--ink-2); }
+.pageNavigation button:hover { background: var(--surface-2); }
+.pageNavigation button:disabled { color: var(--ink-3); opacity: .35; cursor: default; }
+.titleArea { flex: none; width: 100%; max-width: 800px; align-self: center; padding: 25px 40px 22px; }
+.titleInput { display: block; width: 100%; padding: 0; border: 0; border-radius: 0; outline: none; color: var(--ink); background: transparent; font: 700 32px/1.3 var(--font); letter-spacing: -.8px; margin: 0; }
+.titleInput:focus-visible { outline: none; box-shadow: 0 1px 0 var(--line); }
+.titleHint { display: block; margin-top: 10px; color: var(--ink-3); font-size: 12px; }
+.loading { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; color: var(--ink-2); font-size: 14px; }
+.loading button { padding: 9px 18px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); cursor: pointer; }
+@media (max-width: 1150px) and (min-width: 801px) { .layout[data-pages=true] { --pages: 200px; } .layout[data-knowledge=true] { --knowledge: 300px; } .header { gap: 10px; padding-right: 10px; } .titleArea { padding-left: 30px; padding-right: 30px; } .notebookName { max-width: 160px; } }
+@media (max-width: 800px) {
+  .header { height: 54px; padding: 0 10px; gap: 8px; } .identity { gap: 6px; } .brand { font-size: 15px; } .notebookName { display: none; } .identity .headerDivider { display: none; }
+  .toggle { padding: 0 8px; } .toggle > span { display: none; } .headerActions :global([role=toolbar]) { display: none; }
+  .layout { display: flex; flex-direction: column; overflow-y: auto; } .pagesDock { flex: none; max-height: 185px; min-height: 140px; border-right: 0; border-bottom: 1px solid var(--line); } .document { flex: 1; min-height: 400px; overflow: hidden; } .knowledgeDock { flex: none; height: 380px; border-top: 1px solid var(--line); }
+  .titleArea { padding: 18px 24px; } .titleInput { font-size: 28px; } .titleHint { font-size: 11px; } .pageBar { padding: 0 15px; }
+}

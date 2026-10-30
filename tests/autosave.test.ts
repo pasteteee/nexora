@@ -12,7 +12,7 @@ vi.mock("@/lib/data", () => ({
   },
 }));
 
-const { bindAutosave, flush, markChanged, markRemoved, resetAutosave, useSaveStatus } = await import("@/lib/editor/autosave");
+const { bindAutosave, flush, markChanged, markRemoved, resetAutosave, useSaveStatus, saveBeforeNavigation } = await import("@/lib/editor/autosave");
 const el = (id: string) => ({ id }) as never;
 bindAutosave(el);
 
@@ -52,5 +52,20 @@ describe("автосохранение", () => {
     await flush();
     expect(calls[0].up).toEqual(["e"]);
     expect(useSaveStatus.getState().status).toBe("saved");
+  });
+  it("переход сохраняет старую страницу до смены её данных", async () => {
+    bindAutosave(el);
+    markChanged(["previous-page-text"], "text");
+    await saveBeforeNavigation();
+    bindAutosave(() => undefined);
+    expect(calls[0].up).toEqual(["previous-page-text"]);
+    bindAutosave(el);
+  });
+  it("не разрешает сменить страницу при ошибке сохранения", async () => {
+    failNext = true;
+    markChanged(["unsaved-text"], "text");
+    await expect(saveBeforeNavigation()).rejects.toThrow("сохранить страницу");
+    await saveBeforeNavigation();
+    expect(calls[0].up).toEqual(["unsaved-text"]);
   });
 });
