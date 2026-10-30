@@ -74,5 +74,13 @@ export async function flush(): Promise<void> {
 
 export const hasUnsaved = () => dirty.size > 0 || removed.size > 0 || !!inflight;
 
+/** Do not replace a page's element lookup while it still has queued edits. */
+export async function saveBeforeNavigation(): Promise<void> {
+  await flush();
+  if (hasUnsaved() || useSaveStatus.getState().status === "error") {
+    throw new Error("Не удалось сохранить страницу. Повторите сохранение перед переходом.");
+  }
+}
+
 /** Для тестов */
 export function resetAutosave() { clearTimeout(timer); timer = undefined; dirty.clear(); removed.clear(); inflight = null; useSaveStatus.setState({ status: "saved", error: null }); }
