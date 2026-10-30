@@ -106,7 +106,7 @@ function newCanvas(db: Db, workspaceId: string, name?: string): Canvas {
   const c: Canvas = {
     id: uid(), workspaceId,
     name: name?.trim() || `Страница ${siblings.length + 1}`,
-    backgroundType: "grid", backgroundSpacing: 24,
+    backgroundType: "plain", backgroundSpacing: 24,
     position: siblings.reduce((m, x) => Math.max(m, x.position), 0) + 1,
     deletedAt: null, createdAt: now(), updatedAt: now(),
   };
