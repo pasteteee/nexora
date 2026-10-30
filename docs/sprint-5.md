@@ -6,9 +6,9 @@
 В Vercel установите серверные переменные:
 
 - `SUPABASE_SECRET_KEY`: secret key того же проекта Supabase (нужен обработчику и журналу; не добавлять `NEXT_PUBLIC_`).
-- `AI_PROVIDER`: `anthropic` или `openai`.
+- `AI_PROVIDER`: `xai`, `anthropic` или `openai`.
 - `AI_API_KEY`: ключ выбранного провайдера генерации.
-- `AI_MODEL`: доступная вашему аккаунту модель. Значение по умолчанию: `claude-sonnet-4-5` для Anthropic, `gpt-4.1-mini` для OpenAI.
+- `AI_MODEL`: доступная вашему аккаунту модель. Значение по умолчанию: `grok-4.7` для xAI, `claude-sonnet-4-5` для Anthropic, `gpt-4.1-mini` для OpenAI. xAI использует Responses API с `store=false`; ключ xAI хранится в `AI_API_KEY`. Индексация/поиск остаются на отдельном ключе OpenAI `EMBEDDINGS_API_KEY`.
 - `EMBEDDINGS_API_KEY`: ключ OpenAI для векторных представлений.
 - `EMBEDDINGS_MODEL`: по умолчанию `text-embedding-3-small`, 1536 измерений. Смена модели требует повторной обработки всех материалов.
 - При необходимости: `AI_REQUESTS_PER_HOUR=30`, `SEARCH_MIN_SIMILARITY=0.3`.
