@@ -17,9 +17,10 @@ import s from "./document.module.css";
 type Focus = { id: string; caret: number; seq: number } | null;
 const textOf = (el: CanvasElement) => String(el.content.text ?? "");
 
-function TextInput({ el, focus, onFocus, onBlur, onKey }: { el: CanvasElement; focus: Focus; onFocus(): void; onBlur(): void; onKey(e: React.KeyboardEvent<HTMLTextAreaElement>): void }) {
+function TextInput({ el, focus, onFocus, onBlur, onKey, onHistory }: { el: CanvasElement; focus: Focus; onFocus(): void; onBlur(): void; onKey(e: React.KeyboardEvent<HTMLTextAreaElement>): void; onHistory(redo: boolean): void }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const text = textOf(el);
+  const nativeEdited = useRef(false);
   useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
@@ -29,14 +30,26 @@ function TextInput({ el, focus, onFocus, onBlur, onKey }: { el: CanvasElement; f
   useEffect(() => {
     const node = ref.current;
     if (focus?.id !== el.id || !node) return;
+    nativeEdited.current = false;
     node.focus();
     const caret = Math.min(focus.caret, node.value.length);
     node.setSelectionRange(caret, caret);
     node.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [focus, el.id]);
-  return <textarea ref={ref} className={s.input} aria-label="Текст блока" placeholder="Начните писать…" value={text} rows={1} autoFocus maxLength={20000}
-    onFocus={onFocus} onBlur={onBlur} onKeyDown={onKey}
+  return <textarea ref={ref} className={s.input} aria-label="Текст блока" placeholder="Начните писать…" value={text} rows={1} autoFocus
+    onFocus={onFocus} onBlur={onBlur} onKeyDown={(e) => {
+      const key = e.key.toLowerCase();
+      const history = (e.ctrlKey || e.metaKey) && !e.altKey && (key === "z" || key === "y");
+      const redo = key === "y" || e.shiftKey;
+      if (history && !nativeEdited.current) {
+        e.preventDefault(); e.stopPropagation();
+        onHistory(redo);
+        nativeEdited.current = false;
+      } else onKey(e);
+    }}
     onChange={(e) => {
+      // Once this DOM textarea has edits, preserve its native undo/redo stack.
+      nativeEdited.current = true;
       const st = useEditor.getState(), current = st.els[el.id];
       if (current) st.apply({ [el.id]: { content: { ...current.content, text: e.target.value } } }, "text");
     }} />;
@@ -73,6 +86,16 @@ export function DocumentEditor({ title }: { title?: string }) {
     if (node && !node.contains(document.activeElement)) node.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selected]);
 
+  function history(redo: boolean, id: string) {
+    const st = useEditor.getState();
+    const before = documentBlocks(st.els), index = before.findIndex((el) => el.id === id);
+    if (redo) st.redo(); else st.undo();
+    const after = documentBlocks(useEditor.getState().els);
+    const survivor = after.find((el) => el.id === id && isTextBlock(el))
+      ?? after.slice(0, Math.max(1, index + 1)).reverse().find(isTextBlock)
+      ?? after.find(isTextBlock);
+    if (survivor) activate(survivor.id, textOf(survivor).length);
+  }
   function addAfter(afterId?: string) {
     const st = useEditor.getState();
     if (!st.canEdit || !st.canvasId) return;
@@ -160,7 +183,7 @@ export function DocumentEditor({ title }: { title?: string }) {
               <button aria-label="Удалить блок" onClick={() => removeBlock(el)}><Trash2 size={14} /></button>
             </div>
           </div>}
-          {isTextBlock(el) ? editing ? <TextInput el={el} focus={focus} onFocus={() => useEditor.getState().select([el.id])} onBlur={() => setActive(null)} onKey={(e) => onKey(e, el, index)} />
+          {isTextBlock(el) ? editing ? <TextInput el={el} focus={focus} onFocus={() => useEditor.getState().select([el.id])} onBlur={() => setActive(null)} onKey={(e) => onKey(e, el, index)} onHistory={(redo) => history(redo, el.id)} />
             : <div className={s.markdown} tabIndex={canEdit ? 0 : undefined} role={canEdit ? "button" : undefined} aria-label={canEdit ? "Редактировать текст блока" : undefined} onClick={() => canEdit && activate(el.id, textOf(el).length)} onKeyDown={(e) => { if (canEdit && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); activate(el.id, textOf(el).length); } }}><Markdown text={textOf(el)} /></div>
           : el.type === "image" ? <div className={s.image}><ImageView el={el} /></div>
           : el.type === "formula" ? <div className={s.formula} onDoubleClick={() => canEdit && useUi.getState().setEditing(el.id)}><Formula el={el} /></div>

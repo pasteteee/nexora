@@ -10,7 +10,7 @@
 .controls button:disabled { opacity: .25; cursor: default; }
 .controls .grip { background: transparent; cursor: grab; }
 .controls .grip:active { cursor: grabbing; }
-.blockMenu { display: none; position: absolute; bottom: 100%; left: 0; padding: 4px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); border-radius: 7px; gap: 2px; }
+.blockMenu { display: none; position: absolute; top: 0; left: 100%; padding: 4px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); border-radius: 7px; gap: 2px; }
 .controls:hover .blockMenu, .controls:focus-within .blockMenu { display: flex; }
 .input { display: block; width: 100%; padding: 0; margin: 0; min-height: 28px; border: 0; outline: none; box-shadow: none; background: transparent; color: var(--ink); font: 16px/1.7 var(--font); resize: none; overflow: hidden; white-space: pre-wrap; overflow-wrap: anywhere; }
 .input::placeholder { color: var(--ink-3); }
