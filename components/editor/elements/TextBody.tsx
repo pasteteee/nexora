@@ -67,6 +67,7 @@ export function TextBody({ el, placeholder, className }: { el: CanvasElement; pl
   if (editing) {
     return (
       <div
+        key="editing"
         ref={ref}
         className={`${s.text} ${s.editing} ${className ?? ""}`}
         style={textCss(el.style)}
@@ -84,7 +85,7 @@ export function TextBody({ el, placeholder, className }: { el: CanvasElement; pl
     );
   }
   return (
-    <div ref={ref} className={`${s.text} ${el.type === "text" ? s.markdown : ""} ${className ?? ""}`} style={textCss(el.style)} data-empty={!text || undefined} data-placeholder={placeholder}>
+    <div key="reading" ref={ref} className={`${s.text} ${el.type === "text" ? s.markdown : ""} ${className ?? ""}`} style={textCss(el.style)} data-empty={!text || undefined} data-placeholder={placeholder}>
       {el.type === "text" ? <Markdown text={text} /> : text}
     </div>
   );
