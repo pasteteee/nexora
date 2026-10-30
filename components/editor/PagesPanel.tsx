@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ArchiveRestore, Copy, FilePlus2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ArchiveRestore, Copy, FilePlus2, MoreHorizontal, Pencil, Trash2, Files } from "lucide-react";
 import { IconButton, Menu, toast, type MenuItem } from "@/components/ui";
 import { data } from "@/lib/data";
 import { ago } from "@/lib/time";
+import { saveBeforeNavigation } from "@/lib/editor/autosave";
 import type { Canvas } from "@/lib/types";
 import s from "./pages.module.css";
 
@@ -70,11 +71,12 @@ export function PagesPanel({ workspaceId, current, pages, canEdit, onChange, go 
     const v = name.trim().slice(0, 100);
     if (!v || v === pages.find((p) => p.id === id)?.name) return;
     setOrder((o) => o.map((p) => (p.id === id ? { ...p, name: v } : p)));
-    await data.updateCanvas(id, { name: v });
-    onChange();
+    try { await data.updateCanvas(id, { name: v }); onChange(); }
+    catch { toast("Не удалось переименовать страницу"); setOrder(pages); }
   }
 
   async function addPage() {
+    await saveBeforeNavigation();
     const c = await data.createCanvas(workspaceId);
     onChange();
     go(c.id);
@@ -83,6 +85,7 @@ export function PagesPanel({ workspaceId, current, pages, canEdit, onChange, go 
   async function toTrash(id: string) {
     const rest = order.filter((p) => p.id !== id);
     if (!rest.length) return toast("В тетради должна остаться хотя бы одна страница");
+    if (id === current) await saveBeforeNavigation();
     await data.trashCanvas(id);
     toast("Страница в корзине", { label: "Вернуть", run: async () => { await data.restoreCanvas(id); onChange(); } });
     if (trash) setTrash(await data.listCanvasTrash(workspaceId));
@@ -103,15 +106,21 @@ export function PagesPanel({ workspaceId, current, pages, canEdit, onChange, go 
       x: e.clientX, y: e.clientY,
       items: [
         { label: "Переименовать", icon: <Pencil size={16} />, onSelect: () => setRenaming(p.id) },
-        { label: "Дублировать", icon: <Copy size={16} />, onSelect: async () => { const c = await data.duplicateCanvas(p.id); onChange(); go(c.id); } },
+        { label: "Дублировать", icon: <Copy size={16} />, onSelect: () => run(async () => { await saveBeforeNavigation(); const c = await data.duplicateCanvas(p.id); onChange(); go(c.id); }) },
         { sep: true },
-        { label: "В корзину", icon: <Trash2 size={16} />, danger: true, onSelect: () => toTrash(p.id) },
+        { label: "В корзину", icon: <Trash2 size={16} />, danger: true, onSelect: () => run(() => toTrash(p.id)) },
       ],
     });
   }
 
+  async function run(action: () => Promise<unknown>) {
+    try { await action(); } catch (error) { toast((error as Error).message || "Не удалось выполнить действие"); }
+  }
+
   return (
     <aside className={s.panel} aria-label="Страницы">
+      <div className={s.heading}><Files size={16} /><span>Страницы</span><span className={s.count}>{pages.length}</span></div>
+      {canEdit && <button className={s.addPage} onClick={() => void run(addPage)}><FilePlus2 size={16} />Новая страница</button>}
       <ol ref={list} className={s.list} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
         {order.map((p, i) => (
           <li
@@ -120,7 +129,6 @@ export function PagesPanel({ workspaceId, current, pages, canEdit, onChange, go 
             aria-current={p.id === current ? "page" : undefined}
             data-dragging={p.id === dragId || undefined}
             onPointerDown={(e) => onPointerDown(e, p.id)}
-            onClick={() => !dragId && renaming !== p.id && p.id !== current && go(p.id)}
             onDoubleClick={() => canEdit && setRenaming(p.id)}
             onContextMenu={(e) => canEdit && rowMenu(e, p)}
           >
@@ -139,10 +147,11 @@ export function PagesPanel({ workspaceId, current, pages, canEdit, onChange, go 
                 }}
               />
             ) : (
-              <span className={s.name}>{p.name}</span>
+              <button className={s.pageButton} aria-current={p.id === current ? "page" : undefined}
+                onClick={() => !dragId && p.id !== current && go(p.id)}>{p.name}</button>
             )}
             {canEdit && renaming !== p.id && (
-              <button className={s.more} aria-label="Действия" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => rowMenu(e, p)}>
+              <button className={s.more} aria-label={`Действия: ${p.name}`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => rowMenu(e, p)}>
                 <MoreHorizontal size={16} />
               </button>
             )}
@@ -152,12 +161,13 @@ export function PagesPanel({ workspaceId, current, pages, canEdit, onChange, go 
 
       {trash && (
         <div className={s.trash}>
+          <div className={s.trashHeading}>Корзина страниц</div>
           {trash.length === 0 && <div className={s.empty}><Trash2 size={18} /></div>}
           {trash.map((p) => (
             <div key={p.id} className={s.trashRow}>
               <span className={s.name}>{p.name}</span>
               <span className={s.when}>{p.deletedAt && ago(p.deletedAt)}</span>
-              <IconButton tip="Восстановить" onClick={() => restore(p.id)}><ArchiveRestore size={16} /></IconButton>
+              <IconButton tip="Восстановить" onClick={() => void run(() => restore(p.id))}><ArchiveRestore size={16} /></IconButton>
             </div>
           ))}
         </div>
@@ -165,11 +175,7 @@ export function PagesPanel({ workspaceId, current, pages, canEdit, onChange, go 
 
       {canEdit && (
         <div className={s.foot}>
-          <IconButton tip="Новая страница" onClick={addPage}><FilePlus2 size={18} /></IconButton>
-          <IconButton tip="Корзина страниц" active={!!trash}
-            onClick={async () => setTrash(trash ? null : await data.listCanvasTrash(workspaceId))}>
-            <Trash2 size={18} />
-          </IconButton>
+          <button className={s.trashButton} aria-pressed={!!trash} onClick={() => void run(async () => setTrash(trash ? null : await data.listCanvasTrash(workspaceId)))}><Trash2 size={15} />Корзина страниц</button>
         </div>
       )}
       {menu && <Menu {...menu} onClose={() => setMenu(null)} />}
