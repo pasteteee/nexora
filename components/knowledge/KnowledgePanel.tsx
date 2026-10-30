@@ -20,6 +20,7 @@ import { makeElement, topZ } from "@/lib/editor/factory";
 import type { Source } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import s from "./knowledge.module.css";
+import { SourcePreview } from "./SourcePreview";
 
 type Match = {
   id: string;
@@ -57,6 +58,7 @@ function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"materials" | "ai">("materials");
   const [sources, setSources] = useState<Source[]>([]);
+  const [preview, setPreview] = useState<Source | null>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Match[] | null>(null);
   const [prompt, setPrompt] = useState("");
@@ -271,6 +273,7 @@ function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
   }
   return (
     <>
+      {preview && <SourcePreview source={preview} onClose={() => setPreview(null)} />}
       <button
         className={s.launcher}
         onClick={() => setOpen((v) => !v)}
@@ -425,6 +428,8 @@ function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
                       </span>
                       {source.errorMessage && <p>{source.errorMessage}</p>}
                       <div className={s.sourceActions}>
+                        {source.status === "ready" && !source.mimeType.startsWith("image/") &&
+                          <button onClick={() => setPreview(source)}>Читать</button>}
                         <a
                           onClick={(e) => void openSource(e, source.id)}
                           href={
