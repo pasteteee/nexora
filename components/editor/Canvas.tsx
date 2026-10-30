@@ -305,8 +305,8 @@ export function Canvas({ title = "Страница" }: { title?: string }) {
           }}>
           <div style={{ minHeight: 1500, height: `calc(100% + ${(paperBottom - paperTop) * camera.zoom}px)` }} />
         </div>
+        <PropsBar onMore={(x, y) => setMenu({ x, y, items: contextItems(world({ clientX: x, clientY: y })) })} />
       </div>
-      <PropsBar onMore={(x, y) => setMenu({ x, y, items: contextItems(world({ clientX: x, clientY: y })) })} />
       {menu && <Menu {...menu} onClose={() => setMenu(null)} />}
       <ZoomBar view={view} />
       <BackgroundPicker />
