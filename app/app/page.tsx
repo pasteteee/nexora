@@ -89,7 +89,7 @@ export default function Notebooks() {
             tip={profile?.displayName ?? "Профиль"}
             onClick={(e) => {
               const r = e.currentTarget.getBoundingClientRect();
-              setMenu({ x: r.right - 200, y: r.bottom + 8, items: [{ label: "Выйти", icon: <LogOut size={16} />, onSelect: async () => { await signOut(); router.replace("/login"); } }] });
+              setMenu({ x: r.right - 200, y: r.bottom + 8, items: [{ label: "Мой профиль", icon: <Pencil size={16} />, onSelect: () => router.push("/app/profile") }, { label: "Выйти", icon: <LogOut size={16} />, onSelect: async () => { await signOut(); router.replace("/login"); } }] });
             }}
           >
             <span className={s.avatar}>{initials}</span>

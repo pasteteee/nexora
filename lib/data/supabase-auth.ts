@@ -18,8 +18,8 @@ export const supabaseAuth: AuthApi = {
     const sb = supabaseBrowser();
     const { data } = await sb.auth.getUser();
     if (!data.user) return null;
-    const { data: p } = await sb.from("profiles").select("display_name").eq("id", data.user.id).single();
-    return { id: data.user.id, email: data.user.email ?? "", displayName: p?.display_name ?? "" };
+    const { data: p } = await sb.from("profiles").select("display_name, email_verified_at").eq("id", data.user.id).single();
+    return { id: data.user.id, email: data.user.email ?? "", displayName: p?.display_name ?? "", emailVerified: Boolean(p?.email_verified_at) };
   },
   async signUp(email, password, displayName) {
     const { error } = await supabaseBrowser().auth.signUp({
@@ -35,7 +35,9 @@ export const supabaseAuth: AuthApi = {
   },
   async signOut() { await supabaseBrowser().auth.signOut(); },
   async resendConfirmation(email) {
-    const { error } = await supabaseBrowser().auth.resend({ type: "signup", email });
+    const { error } = await supabaseBrowser().auth.signInWithOtp({ email,
+      options: { shouldCreateUser: false, emailRedirectTo: `${origin()}/auth/confirm` },
+    });
     fail(error);
   },
   async requestPasswordReset(email) {

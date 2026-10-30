@@ -45,14 +45,14 @@ test("SMTP password is preserved verbatim and is confined to the management payl
   assert.equal(config.pass, smtpEnv.SMTP_PASS);
   const payload = authSmtpPayload(config);
   assert.equal(payload.smtp_pass, smtpEnv.SMTP_PASS);
-  assert.equal(payload.mailer_autoconfirm, false);
+  assert.equal(payload.mailer_autoconfirm, true);
   assert.equal(payload.external_email_enabled, true);
 });
 test("SMTP readback handles a redacted password but detects incorrect settings", () => {
   const payload = authSmtpPayload(smtpConfig(smtpEnv));
   assert.equal(matchesAuthConfig({ ...payload, smtp_pass: null, smtp_port: "587" }, payload), true);
   assert.equal(matchesAuthConfig({ ...payload, smtp_host: "wrong.example.com" }, payload), false);
-  assert.equal(matchesAuthConfig({ ...payload, mailer_autoconfirm: true }, payload), false);
+  assert.equal(matchesAuthConfig({ ...payload, mailer_autoconfirm: false }, payload), false);
 });
 test("SMTP validation blocks malformed ports, headers and multiple recipients", () => {
   for (const port of ["0", "65536", "587x"]) assert.throws(() => smtpConfig({ ...smtpEnv, SMTP_PORT: port }));

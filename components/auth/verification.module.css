@@ -1,0 +1,12 @@
+.banner { display: flex; gap: 16px; align-items: flex-start; padding: 24px; border: 1px solid #e7dfcc; border-radius: 16px; background: #fffaf0; color: #554630; }
+.body { flex: 1; min-width: 0; }
+.body strong { font-size: 16px; }
+.body p { margin: 6px 0; line-height: 1.6; overflow-wrap: anywhere; }
+.body span { display: block; font-size: 13px; line-height: 1.5; }
+.verified { display: flex; align-items: center; gap: 8px; color: #337554; }
+.page { max-width: 760px; margin: 72px auto; padding: 24px; }
+.page h1 { margin: 32px 0 8px; font-size: 32px; }
+.page input { width: 100%; margin: 8px 0 16px; }
+.page form { margin: 28px 0; }
+.page label { display: block; }
+@media (max-width: 600px) { .banner { flex-wrap: wrap; padding: 18px; } .page { margin-top: 24px; } }
