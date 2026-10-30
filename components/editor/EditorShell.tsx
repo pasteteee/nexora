@@ -66,7 +66,14 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
     const items = Object.values(useEditor.getState().els);
     const y = Math.max(80, ...items.map((el) => el.y + el.height + 24));
     const el = create("text", { x: 0, y: y + 24 }, { width: 680, height: 48 });
-    if (el) startEditing(el.id);
+    if (el) {
+      const st = useEditor.getState();
+      // New paragraphs must enter the viewport before receiving focus.
+      const viewport = document.querySelector<HTMLElement>("[data-notebook-viewport]");
+      const width = viewport?.clientWidth ?? 900;
+      st.setCamera({ ...st.camera, x: width / 2, y: 100 - el.y * st.camera.zoom });
+      startEditing(el.id);
+    }
   }
 
   function togglePages() {
@@ -75,7 +82,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
 
   return (
     <main className={`${s.root} ${panel ? s.withPages : ""}`}>
-      {ready === canvasId && <CanvasView title={page?.name ?? "Страница"} />}
+      {ready === canvasId && <CanvasView key={canvasId} title={page?.name ?? "Страница"} />}
       <div className={s.tl}>
         <Group>
           <IconButton tip="Мои тетради" onClick={() => router.push("/app")}><Home size={18} /></IconButton>
