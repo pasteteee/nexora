@@ -12,7 +12,7 @@
   padding: 9px 13px;
   font: 500 13px inherit;
   color: var(--ink-2);
-  box-shadow: 0 2px 6px #00000005;
+  box-shadow: var(--shadow-1);
   cursor: pointer;
 }
 .panel {
@@ -27,10 +27,176 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 14px;
-  box-shadow: 0 12px 50px #24282017;
+  box-shadow: var(--shadow-2);
   color: var(--ink-2);
   font-family: inherit;
   overflow: hidden;
+}
+.panel.docked {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  z-index: auto;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+.docked .header {
+  padding: 22px 20px 18px;
+  gap: 8px;
+}
+.docked .header h2 {
+  font-size: 16px;
+  letter-spacing: -0.35px;
+  color: var(--ink);
+  margin-top: 7px;
+}
+.docked .eyebrow {
+  font-size: 9px;
+  letter-spacing: 1.3px;
+  color: var(--ink-3);
+}
+.docked .header > button {
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+}
+.docked .header > button:hover {
+  background: var(--surface-2);
+}
+.docked .tabs {
+  padding: 0 16px 14px;
+  gap: 6px;
+}
+.docked .tabs button {
+  font-size: 12px;
+  padding: 9px 6px;
+  font-weight: 500;
+}
+.docked .tabs button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.docked .tabs span {
+  font-size: 10px;
+  min-width: 17px;
+  background: var(--surface);
+}
+.docked .body {
+  padding: 16px 18px 24px;
+  overscroll-behavior: contain;
+}
+.docked .search {
+  background: var(--bg);
+  padding: 10px;
+}
+.docked .search input {
+  font-size: 12px;
+}
+.docked .search button {
+  background: var(--surface-2);
+}
+.docked .notice {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--ink-3);
+  margin: 0 0 16px;
+}
+.docked .error {
+  font-size: 12px;
+  color: var(--danger);
+}
+.docked .sectionTitle {
+  font-size: 10px;
+  color: var(--ink-3);
+  letter-spacing: 0.6px;
+}
+.docked .source {
+  padding: 16px 0;
+}
+.docked .source strong {
+  font-size: 12px;
+  color: var(--ink);
+}
+.docked .sourceInfo > span {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.docked .sourceInfo > span[data-status="processing"] {
+  color: var(--accent);
+}
+.docked .sourceInfo > span[data-status="error"] {
+  color: var(--danger);
+}
+.docked .sourceActions {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.docked .sourceActions a,
+.docked .sourceActions button {
+  font-size: 11px;
+}
+.docked .upload {
+  padding: 20px 8px;
+  background: var(--bg);
+  margin: 16px 0 24px;
+}
+.docked .upload strong {
+  font-size: 12px;
+}
+.docked .upload span {
+  font-size: 10px;
+  color: var(--ink-3);
+}
+.docked .aiIntro {
+  padding: 10px 4px 18px;
+}
+.docked .aiIntro h3 {
+  font-size: 18px;
+  color: var(--ink);
+}
+.docked .aiIntro p {
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.8;
+}
+.docked .composer {
+  background: var(--bg);
+}
+.docked .composer textarea {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--ink);
+}
+.docked .composer button {
+  background: var(--accent);
+  color: var(--surface);
+}
+.docked .answer > p {
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--ink-2);
+}
+.docked .quote p {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.docked .citation {
+  font-size: 11px;
+}
+.docked .citation blockquote {
+  font-size: 12px;
+}
+.docked .footer {
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--ink-3);
+  background: var(--surface);
+  padding: 13px 18px;
 }
 .panel button,
 .panel input,
@@ -471,7 +637,7 @@
   background: var(--surface-2);
 }
 .panel :is(button, a, input, textarea, select):focus-visible {
-  outline: 2px solid #80946a;
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 @media (max-width: 650px) {
