@@ -53,7 +53,7 @@ export function authSmtpPayload(config) {
   return {
     external_email_enabled: true,
     mailer_secure_email_change_enabled: true,
-    mailer_autoconfirm: false,
+    mailer_autoconfirm: true,
     smtp_host: config.host,
     smtp_port: config.port,
     smtp_user: config.user,
@@ -69,7 +69,7 @@ export function matchesAuthConfig(actual, expected) {
     actual.smtp_user === expected.smtp_user &&
     actual.smtp_admin_email === expected.smtp_admin_email &&
     actual.smtp_sender_name === expected.smtp_sender_name &&
-    actual.external_email_enabled === true && actual.mailer_autoconfirm === false &&
+    actual.external_email_enabled === true && actual.mailer_autoconfirm === true &&
     actual.mailer_secure_email_change_enabled === true;
   // Supabase may redact smtp_pass in readbacks; never log or compare it here.
 }

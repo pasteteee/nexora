@@ -11,11 +11,14 @@ async function user(email: string) {
 beforeEach(() => localStorage.clear());
 
 describe("авторизация (демо)", () => {
-  it("вход только после подтверждения e-mail", async () => {
+  it("вход доступен до подтверждения, подтверждение одноразовое", async () => {
     await localAuth.signUp("a@b.ru", "secret123", "Аня");
-    await expect(localAuth.signIn("a@b.ru", "secret123")).rejects.toThrow(/Подтвердите/);
+    await localAuth.signIn("a@b.ru", "secret123");
+    expect((await localAuth.current())?.emailVerified).toBe(false);
+    await expect(localData.createWorkspace()).resolves.toMatchObject({ role: "owner" });
     const t = new URL(localAuth.demoInbox("a@b.ru")!.url, "http://x").searchParams.get("confirm")!;
     await consumeToken(t, "confirm");
+    expect((await localAuth.current())?.emailVerified).toBe(true);
     await expect(consumeToken(t, "confirm")).rejects.toThrow(/устарела/); // ссылка одноразовая
     await localAuth.signOut();
     await localAuth.signIn("A@B.ru", "secret123");

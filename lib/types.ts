@@ -5,7 +5,7 @@ export type ElementType =
   | "connector" | "diagram_node" | "source" | "source_fragment" | "group";
 export type SourceStatus = "pending" | "processing" | "ready" | "error" | "requires_ocr";
 
-export interface Profile { id: string; email: string; displayName: string }
+export interface Profile { id: string; email: string; displayName: string; emailVerified?: boolean }
 
 export interface Workspace {
   id: string;

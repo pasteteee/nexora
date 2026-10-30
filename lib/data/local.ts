@@ -127,7 +127,7 @@ export const localAuth: AuthApi & { demoInbox(email: string): { kind: string; ur
     const db = load();
     const id = sessionUserId();
     const u = db.users.find((x) => x.id === id);
-    return u ? { id: u.id, email: u.email, displayName: u.displayName } : null;
+    return u ? { id: u.id, email: u.email, displayName: u.displayName, emailVerified: u.confirmed } : null;
   },
   async signUp(email, password, displayName) {
     await delay();
@@ -146,7 +146,6 @@ export const localAuth: AuthApi & { demoInbox(email: string): { kind: string; ur
     const db = load();
     const u = db.users.find((x) => x.email === email.trim().toLowerCase());
     if (!u || u.passHash !== h) throw new ApiError("Неверный e-mail или пароль", "auth");
-    if (!u.confirmed) throw new ApiError("Подтвердите e-mail — ссылка в письме", "auth");
     localStorage.setItem(SESSION, u.id);
   },
   async signOut() { localStorage.removeItem(SESSION); },
