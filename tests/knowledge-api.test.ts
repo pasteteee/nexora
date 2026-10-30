@@ -5,16 +5,27 @@ const mocks = vi.hoisted(() => ({
   admin: vi.fn(),
   search: vi.fn(),
   generate: vi.fn(),
+  reserve: vi.fn(),
+  supabase: vi.fn(),
 }));
+vi.mock("@/lib/supabase/server", () => ({ supabaseServer: mocks.supabase }));
+vi.mock("next/server", () => ({ after: vi.fn() }));
 vi.mock("@/lib/knowledge/server", async () => {
   const actual = await vi.importActual<typeof import("@/lib/knowledge/server")>(
     "@/lib/knowledge/server",
   );
-  return { ...actual, access: mocks.access, admin: mocks.admin };
+  return {
+    ...actual,
+    access: mocks.access,
+    admin: mocks.admin,
+    reserveOperation: mocks.reserve,
+  };
 });
 vi.mock("@/lib/knowledge/search", () => ({ search: mocks.search }));
 vi.mock("@/lib/knowledge/provider", () => ({ generate: mocks.generate }));
 import { POST } from "@/app/api/ai/ask/route";
+import { GET as searchRoute } from "@/app/api/search/route";
+import { POST as processRoute } from "@/app/api/sources/[sourceId]/process/route";
 import { HttpError } from "@/lib/knowledge/server";
 const workspaceId = "00000000-0000-4000-8000-000000000001",
   canvasId = "00000000-0000-4000-8000-000000000002";
@@ -54,6 +65,49 @@ describe("assistant API isolation and streaming", () => {
       yield "A useful ";
       yield "answer.";
     });
+  });
+  it("blocks direct paid search when hourly quota is exhausted", async () => {
+    mocks.reserve.mockRejectedValue(new HttpError(429, "Лимит"));
+    const response = await searchRoute(
+      new Request(
+        `http://localhost/api/search?workspaceId=${workspaceId}&q=hello`,
+      ),
+    );
+    expect(response.status).toBe(429);
+    expect(mocks.search).not.toHaveBeenCalled();
+    expect(mocks.reserve).toHaveBeenCalledWith(workspaceId, "me", "search");
+  });
+  it("does not re-embed a ready source on repeated process requests", async () => {
+    mocks.supabase.mockResolvedValue({
+      from: () =>
+        chain({ data: { workspace_id: workspaceId, status: "ready" } }),
+    });
+    const response = await processRoute(
+      new Request("http://localhost", { method: "POST" }),
+      { params: Promise.resolve({ sourceId: canvasId }) },
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ status: "ready" });
+    expect(mocks.reserve).not.toHaveBeenCalled();
+    expect(mocks.admin).not.toHaveBeenCalled();
+  });
+  it("rate limits repeated errored source processing", async () => {
+    mocks.supabase.mockResolvedValue({
+      from: () =>
+        chain({ data: { workspace_id: workspaceId, status: "error" } }),
+    });
+    mocks.reserve.mockRejectedValue(new HttpError(429, "Лимит"));
+    const response = await processRoute(
+      new Request("http://localhost", { method: "POST" }),
+      { params: Promise.resolve({ sourceId: canvasId }) },
+    );
+    expect(response.status).toBe(429);
+    expect(mocks.reserve).toHaveBeenCalledWith(
+      workspaceId,
+      "me",
+      "source_processing",
+    );
+    expect(mocks.admin).not.toHaveBeenCalled();
   });
   it("rejects viewers before touching search or AI", async () => {
     mocks.access.mockRejectedValue(new HttpError(403, "Нет доступа"));

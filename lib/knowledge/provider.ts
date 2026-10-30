@@ -92,6 +92,22 @@ export async function* generate(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let pending = "";
+  let completed = false;
+  function parseLine(line: string): string | undefined {
+    if (!line.startsWith("data: ")) return;
+    if (line.slice(6).trim() === "[DONE]") {
+      if (!anthropic) completed = true;
+      return;
+    }
+    const event = JSON.parse(line.slice(6));
+    if (event.error || event.type === "error")
+      throw new Error("Ошибка сервиса ИИ");
+    if (anthropic && event.type === "message_stop") completed = true;
+    const text = anthropic
+      ? event.delta?.text
+      : event.choices?.[0]?.delta?.content;
+    return typeof text === "string" ? text : undefined;
+  }
   try {
     while (true) {
       const { value, done } = await reader.read();
@@ -100,16 +116,13 @@ export async function* generate(
       const lines = pending.split("\n");
       pending = lines.pop() || "";
       for (const line of lines) {
-        if (!line.startsWith("data: ") || line.slice(6).trim() === "[DONE]")
-          continue;
-        const event = JSON.parse(line.slice(6));
-        if (event.type === "error") throw new Error("Ошибка сервиса ИИ");
-        const text = anthropic
-          ? event.delta?.text
-          : event.choices?.[0]?.delta?.content;
+        const text = parseLine(line);
         if (typeof text === "string") yield text;
       }
     }
+    const finalText = parseLine(pending + decoder.decode());
+    if (finalText) yield finalText;
+    if (!completed) throw new Error("Поток ответа ИИ прерван");
   } finally {
     await reader.cancel().catch(() => {});
   }
