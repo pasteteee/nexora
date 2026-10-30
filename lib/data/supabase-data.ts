@@ -109,7 +109,7 @@ export const supabaseData: DataApi = {
     const ws = check(await sb().from("workspaces")
       .insert({ owner_id: me, name: name?.trim() || "Новая тетрадь" }).select().single());
     // у новой тетради сразу есть первая страница
-    check(await sb().from("canvases").insert({ workspace_id: ws.id, name: "Страница 1", position: 1 }));
+    check(await sb().from("canvases").insert({ workspace_id: ws.id, name: "Страница 1", position: 1, background_type: "plain" }));
     return toWs(ws, "owner", 1);
   },
   async renameWorkspace(id, name) {
@@ -138,7 +138,7 @@ export const supabaseData: DataApi = {
   async createCanvas(workspaceId, name) {
     const count = (await this.listCanvases(workspaceId)).length;
     const r = check(await sb().from("canvases").insert({
-      workspace_id: workspaceId, name: name?.trim() || `Страница ${count + 1}`, position: await nextPosition(workspaceId),
+      workspace_id: workspaceId, name: name?.trim() || `Страница ${count + 1}`, position: await nextPosition(workspaceId), background_type: "plain",
     }).select().single());
     return toCanvas(r);
   },
@@ -224,6 +224,14 @@ export const supabaseData: DataApi = {
       await sb().from("sources").delete().eq("id", id);
       throw new ApiError("Не удалось загрузить файл", "network");
     }
+      // Indexing is independent of upload success; a failed start remains
+      // visible as pending and can be retried from Materials.
+      const { data: session } = await sb().auth.getSession();
+      if (session.session?.access_token) {
+        void fetch(`/api/sources/${id}/process`, {
+          method: "POST", headers: { Authorization: `Bearer ${session.session.access_token}` },
+        }).catch(() => {});
+      }
     return toSource(row);
   },
   async deleteSource(id) {
