@@ -18,8 +18,9 @@ import { ElementView } from "./elements/ElementView";
 import { ZoomBar } from "./ZoomBar";
 import s from "./editor.module.css";
 
-export function Canvas() {
+export function Canvas({ title = "Страница" }: { title?: string }) {
   const ref = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const camera = useEditor((st) => st.camera);
   const background = useEditor((st) => st.background);
   const bounds = useEditor((st) => st.bounds);
@@ -74,9 +75,13 @@ export function Canvas() {
     const st = useEditor.getState();
     if (st.camera.x === 0 && st.camera.y === 0) {
       const r = view();
-      st.setCamera({ x: r.width / 2, y: r.height / 2, zoom: st.camera.zoom });
+      st.setCamera({ x: r.width / 2, y: 180, zoom: Math.min(1, (r.width - 80) / 880) });
     }
   }, [view]);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = Math.max(0, 180 - camera.y);
+  }, [camera.y]);
 
   const local = (e: { clientX: number; clientY: number }): Pt => { const r = view(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   const world = (e: { clientX: number; clientY: number }) => toWorld(local(e), useEditor.getState().camera);
@@ -224,7 +229,7 @@ export function Canvas() {
     if (!st.canEdit) return;
     const id = targetId(e.target);
     if (id) return startEditing(id);
-    const el = create("note", world(e));
+    const el = create("text", world(e), { width: 600, height: 48 });
     if (el) startEditing(el.id);
   }
 
@@ -250,13 +255,14 @@ export function Canvas() {
     if (docs.length) insertSources(docs, { x: at.x, y: at.y + images.length * 40 });
   }
 
+  const paperBottom = Math.max(1100, ...Object.values(els).map((el) => el.y + el.height + 160));
   return (
     <>
       <div
         ref={ref}
         tabIndex={0}
         className={`${s.viewport} ${panning ? s.panning : space ? s.spaceReady : tool !== "select" ? s.toolCursor : ""}`}
-        style={backgroundStyle(background.type, background.spacing, camera)}
+        style={{ backgroundColor: "var(--surface-2)" }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -268,12 +274,23 @@ export function Canvas() {
         onDrop={onDrop}
       >
         <div className={s.world} style={{ transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})` }}>
+          <div className={s.paper} style={{ left: -440, top: -100, width: 880, height: paperBottom + 100, ...backgroundStyle(background.type, background.spacing, { x: 440, y: 100, zoom: 1 }) }}>
+            <div className={s.paperHeading}><span>МОЯ ТЕТРАДЬ</span><h1>{title}</h1><p>Двойной клик — текст. Перетаскивайте блоки и изображения куда удобно.</p></div>
+          </div>
           <div className={s.boundary} style={{ left: -bounds.hx, top: -bounds.hy, width: bounds.hx * 2, height: bounds.hy * 2 }} />
           {Object.values(els).map((el) => <ElementView key={el.id} el={el} />)}
           <ConnectorLayer draft={draft} />
         </div>
         <SelectionOverlay marquee={marquee} onHandleDown={onHandleDown} />
         {dropping && <div className={s.dropHint} />}
+        <div ref={scrollRef} className={s.documentScroll} tabIndex={0} aria-label="Прокрутка страницы"
+          onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}
+          onScroll={(e) => {
+            const y = 180 - e.currentTarget.scrollTop;
+            if (Math.abs(useEditor.getState().camera.y - y) > 1) useEditor.getState().setCamera({ ...useEditor.getState().camera, y });
+          }}>
+          <div style={{ height: Math.max(1500, paperBottom * camera.zoom + 300) }} />
+        </div>
       </div>
       <PropsBar onMore={(x, y) => setMenu({ x, y, items: contextItems(world({ clientX: x, clientY: y })) })} />
       {menu && <Menu {...menu} onClose={() => setMenu(null)} />}
