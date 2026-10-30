@@ -28,3 +28,19 @@ begin
 end $$;
 revoke all on function public.reserve_ai_request(uuid,uuid,text,integer) from public,anon,authenticated;
 grant execute on function public.reserve_ai_request(uuid,uuid,text,integer) to service_role;
+
+create function public.nearest_canvas_elements(p_workspace_id uuid,p_canvas_id uuid,p_selected_ids uuid[])
+returns table(id uuid,x double precision,y double precision,content_json jsonb)
+language sql stable security invoker set search_path='' as $$
+ select e.id,e.x,e.y,e.content_json from public.elements e
+ cross join lateral (
+   select min(sqrt(power(e.x-s.x,2)+power(e.y-s.y,2))) as distance
+   from public.elements s where s.workspace_id=p_workspace_id and s.canvas_id=p_canvas_id
+    and s.id=any(p_selected_ids[1:20])
+ ) d
+ where e.workspace_id=p_workspace_id and e.canvas_id=p_canvas_id
+  and not(e.id=any(p_selected_ids[1:20])) and d.distance<=500
+ order by d.distance,e.id limit 3;
+$$;
+revoke all on function public.nearest_canvas_elements(uuid,uuid,uuid[]) from public,anon;
+grant execute on function public.nearest_canvas_elements(uuid,uuid,uuid[]) to authenticated;
