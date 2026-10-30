@@ -3,6 +3,29 @@ import { createClient } from "@supabase/supabase-js";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getPublicEnv } from "@/lib/env/public";
 import { getSupabaseSecretKey } from "@/lib/env/server";
+import { limits } from "@/lib/config";
+
+export async function reserveOperation(
+  workspaceId: string,
+  userId: string,
+  type: string,
+) {
+  const worker = admin();
+  const { data, error } = await worker.rpc("reserve_ai_request", {
+    p_workspace_id: workspaceId,
+    p_user_id: userId,
+    p_request_type: type,
+    p_limit: limits.aiRequestsPerHour,
+  });
+  if (error)
+    throw new HttpError(
+      error.message.includes("AI_RATE_LIMIT") ? 429 : 503,
+      error.message.includes("AI_RATE_LIMIT")
+        ? "Лимит запросов за час исчерпан"
+        : "Сервис временно недоступен",
+    );
+  return { worker, logId: data as string };
+}
 
 export class HttpError extends Error {
   constructor(

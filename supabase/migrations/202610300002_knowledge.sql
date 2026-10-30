@@ -1,4 +1,8 @@
 -- Commit the new index and status together; old fragments survive failed retries.
+alter table public.ai_requests drop constraint ai_requests_request_type_check;
+alter table public.ai_requests add constraint ai_requests_request_type_check check (
+ request_type in ('ask_workspace','ask_selection','explain','summarize','rewrite','expand','diagram','embedding','search','source_processing')
+);
 create function public.replace_source_index(p_source_id uuid, p_chunks jsonb)
 returns void language plpgsql security invoker set search_path = '' as $$
 declare w uuid;
