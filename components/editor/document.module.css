@@ -1,5 +1,5 @@
 .editor { flex: 1; min-height: 0; height: 100%; overflow: auto; overscroll-behavior: contain; background: var(--surface); color: var(--ink); scrollbar-width: thin; }
-.document { width: min(100%, 784px); margin: 0 auto; padding: 28px 48px 180px; }
+.document { width: min(100%, 800px); margin: 0 auto; padding: 16px 40px 180px; }
 .blocks { display: flex; flex-direction: column; gap: 3px; }
 .block { position: relative; min-width: 0; border-radius: 5px; padding: 3px 0; scroll-margin: 80px 0; }
 .block[data-selected] { background: color-mix(in srgb, var(--accent) 3%, transparent); }

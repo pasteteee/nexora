@@ -144,7 +144,12 @@ export function DocumentEditor({ title }: { title?: string }) {
     }
   }} onDragOver={(e) => { if (canEdit && e.dataTransfer.types.includes("Files")) e.preventDefault(); }}
   onDrop={(e) => { if (canEdit && e.dataTransfer.files.length) { e.preventDefault(); const files = [...e.dataTransfer.files]; void upload("image", files.filter((f) => f.type.startsWith("image/"))); void upload("source", files.filter((f) => !f.type.startsWith("image/"))); } }}>
-    <article className={s.document}>
+    <article className={s.document} onClick={(e) => {
+      if (!canEdit || e.target !== e.currentTarget) return;
+      const last = documentBlocks(useEditor.getState().els).at(-1);
+      if (last && isTextBlock(last) && !textOf(last)) activate(last.id);
+      else addAfter();
+    }}>
       <div className={s.blocks}>{blocks.map((el, index) => {
         const editing = canEdit && isTextBlock(el) && (active === el.id || (blocks.length === 1 && !textOf(el)));
         return <section key={el.id} data-block-id={el.id} data-selected={selected.includes(el.id) || undefined} className={`${s.block} ${dropTarget === el.id ? s.dropTarget : ""}`}
@@ -160,7 +165,7 @@ export function DocumentEditor({ title }: { title?: string }) {
               <button aria-label="Удалить блок" onClick={() => removeBlock(el)}><Trash2 size={14} /></button>
             </div>
           </div>}
-          {isTextBlock(el) ? editing ? <TextInput el={el} focus={focus} onFocus={() => useEditor.getState().select([el.id])} onBlur={() => setActive(null)} onKey={(e) => onKey(e, el, index)} />
+          {isTextBlock(el) ? editing ? <TextInput el={el} focus={focus} onFocus={() => { setActive(el.id); useEditor.getState().select([el.id]); }} onBlur={() => setActive(null)} onKey={(e) => onKey(e, el, index)} />
             : <div className={s.markdown} tabIndex={canEdit ? 0 : undefined} role={canEdit ? "button" : undefined} aria-label={canEdit ? "Редактировать текст блока" : undefined} onClick={() => canEdit && activate(el.id, textOf(el).length)} onKeyDown={(e) => { if (canEdit && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); activate(el.id, textOf(el).length); } }}><Markdown text={textOf(el)} /></div>
           : el.type === "image" ? <div className={s.image}><ImageView el={el} /></div>
           : el.type === "formula" ? <div className={s.formula} onDoubleClick={() => canEdit && useUi.getState().setEditing(el.id)}><Formula el={el} /></div>
