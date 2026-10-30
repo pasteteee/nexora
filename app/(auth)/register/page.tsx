@@ -1,21 +1,23 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button, Field, Spinner } from "@/components/ui";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { DemoInbox } from "@/components/auth/DemoInbox";
 import { PasswordField } from "@/components/auth/PasswordField";
 import s from "@/components/auth/auth.module.css";
 import { auth, ApiError } from "@/lib/data";
 import { validateEmail, validateName, validatePassword } from "@/lib/validation";
+import { useSession } from "@/lib/session";
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const refresh = useSession((s) => s.refresh);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [err, setErr] = useState<string | null>(null);
-  const [sent, setSent] = useState(0);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: FormEvent) {
@@ -26,21 +28,12 @@ export default function RegisterPage() {
     setBusy(true); setErr(null);
     try {
       await auth.signUp(email, password, name);
-      setSent((n) => n + 1);
+      await auth.signIn(email, password);
+      await refresh();
+      router.replace("/app");
     } catch (x) {
       setErr(x instanceof ApiError ? x.message : "Нет соединения. Попробуйте ещё раз.");
     } finally { setBusy(false); }
-  }
-
-  if (sent) {
-    return (
-      <AuthShell title="Проверьте почту">
-        <div className={s.ok}>Мы отправили ссылку на {email}</div>
-        <DemoInbox email={email} tick={sent} />
-        <Button variant="ghost" onClick={async () => { await auth.resendConfirmation(email); setSent((n) => n + 1); }}>Отправить снова</Button>
-        <div className={s.row}><span /><Link href="/login">Ко входу</Link></div>
-      </AuthShell>
-    );
   }
 
   return (
