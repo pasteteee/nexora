@@ -32,6 +32,13 @@ describe("document text boundaries", () => {
     expect(splitText("abc", 99)).toEqual(["abc", ""]);
     expect(splitText("abc", -1)).toEqual(["", "abc"]);
   });
+  it("preserves every character when merged paragraphs exceed the former textarea limit", () => {
+    const before = "a".repeat(15000), after = "b".repeat(15000);
+    const merged = mergeText(before, after);
+    expect(merged.text).toBe(before + after);
+    expect(merged.text.length).toBe(30000);
+    expect(merged.caret).toBe(15000);
+  });
   it("merges paragraphs and restores the caret at their previous boundary", () => {
     expect(mergeText("**First**", " second")).toEqual({ text: "**First** second", caret: 9 });
     expect(mergeText("", "hello")).toEqual({ text: "hello", caret: 0 });
