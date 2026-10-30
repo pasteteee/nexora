@@ -45,7 +45,14 @@ async function checked(response: Response) {
   return response;
 }
 
-type PanelProps = { workspaceId: string; canvasId: string; canEdit: boolean };
+type PanelProps = {
+  workspaceId: string;
+  canvasId: string;
+  canEdit: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  docked?: boolean;
+};
 export function KnowledgePanel(props: PanelProps) {
   return (
     <KnowledgePanelContent
@@ -54,8 +61,20 @@ export function KnowledgePanel(props: PanelProps) {
     />
   );
 }
-function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
-  const [open, setOpen] = useState(false);
+function KnowledgePanelContent({
+  workspaceId,
+  canvasId,
+  canEdit,
+  open: controlledOpen,
+  onOpenChange,
+  docked = false,
+}: PanelProps) {
+  const [localOpen, setLocalOpen] = useState(docked);
+  const open = controlledOpen ?? localOpen;
+  const setOpen = (value: boolean) => {
+    setLocalOpen(value);
+    onOpenChange?.(value);
+  };
   const [tab, setTab] = useState<"materials" | "ai">("materials");
   const [sources, setSources] = useState<Source[]>([]);
   const [preview, setPreview] = useState<Source | null>(null);
@@ -217,7 +236,9 @@ function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
         }
       }
       if (!completed && !controller.signal.aborted)
-        throw new Error("Ответ прервался. Сохранённый черновик можно скопировать или запросить ответ повторно.");
+        throw new Error(
+          "Ответ прервался. Сохранённый черновик можно скопировать или запросить ответ повторно.",
+        );
     } catch (e) {
       if (!controller.signal.aborted) setError((e as Error).message);
     } finally {
@@ -251,10 +272,11 @@ function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
     );
     if (st.add([element])) {
       st.select([element.id]);
-      const viewport = document.querySelector<HTMLElement>("[data-notebook-viewport]");
-      st.setCamera({ ...st.camera, x: (viewport?.clientWidth ?? 900) / 2,
-        y: 100 - element.y * st.camera.zoom });
-      setOpen(false);
+      requestAnimationFrame(() =>
+        document
+          .querySelector(`[data-document-block-id="${element.id}"]`)
+          ?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
+      );
     }
   }
   function applyReplacement() {
@@ -273,25 +295,29 @@ function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
   }
   return (
     <>
-      {preview && <SourcePreview source={preview} onClose={() => setPreview(null)} />}
-      <button
-        className={s.launcher}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-controls="knowledge-panel"
-      >
-        <BookOpen size={17} /> Материалы и ИИ
-      </button>
+      {preview && (
+        <SourcePreview source={preview} onClose={() => setPreview(null)} />
+      )}
+      {!docked && (
+        <button
+          className={s.launcher}
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          aria-controls="knowledge-panel"
+        >
+          <BookOpen size={17} /> Материалы и ИИ
+        </button>
+      )}
       {open && (
         <aside
           id="knowledge-panel"
-          className={s.panel}
+          className={`${s.panel} ${docked ? s.docked : ""}`}
           aria-label="Материалы и ИИ"
         >
           <header className={s.header}>
             <div>
-              <span className={s.eyebrow}>ВАША БАЗА ЗНАНИЙ</span>
-              <h2>Всё под рукой</h2>
+              <span className={s.eyebrow}>К ЭТОЙ ТЕТРАДИ</span>
+              <h2>Материалы и помощник</h2>
             </div>
             <button onClick={() => setOpen(false)} aria-label="Закрыть панель">
               <X size={18} />
@@ -428,8 +454,12 @@ function KnowledgePanelContent({ workspaceId, canvasId, canEdit }: PanelProps) {
                       </span>
                       {source.errorMessage && <p>{source.errorMessage}</p>}
                       <div className={s.sourceActions}>
-                        {source.status === "ready" && !source.mimeType.startsWith("image/") &&
-                          <button onClick={() => setPreview(source)}>Читать</button>}
+                        {source.status === "ready" &&
+                          !source.mimeType.startsWith("image/") && (
+                            <button onClick={() => setPreview(source)}>
+                              Читать
+                            </button>
+                          )}
                         <a
                           onClick={(e) => void openSource(e, source.id)}
                           href={
