@@ -38,8 +38,12 @@ export default function Notebooks() {
   }, [trash, tick]);
 
   async function create() {
-    const ws = await data.createWorkspace();
-    router.push(`/app/w/${ws.id}`);
+    try {
+      const ws = await data.createWorkspace();
+      router.push(`/app/w/${ws.id}`);
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "Не удалось создать тетрадь");
+    }
   }
   async function rename(ws: WorkspaceCard, name: string) {
     setRenaming(null);
