@@ -543,6 +543,16 @@ export type Database = {
         }[]
       }
       get_published_canvas: { Args: { p_slug: string }; Returns: Json }
+      list_workspace_members: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          display_name: string
+          email: string | null
+          joined_at: string
+          role: string
+          user_id: string
+        }[]
+      }
       match_source_chunks: {
         Args: { p_embedding: string; p_limit?: number; p_workspace_id: string }
         Returns: {
@@ -554,12 +564,24 @@ export type Database = {
           source_id: string
         }[]
       }
+      publish_canvas: {
+        Args: { p_canvas_id: string }
+        Returns: { is_active: boolean; published_at: string; slug: string }[]
+      }
+      remove_workspace_member: {
+        Args: { p_user_id: string; p_workspace_id: string }
+        Returns: undefined
+      }
       restore_workspace: {
         Args: { p_workspace_id: string }
         Returns: undefined
       }
       revoke_workspace_invitation: {
         Args: { p_invitation_id: string }
+        Returns: undefined
+      }
+      set_member_role: {
+        Args: { p_role: string; p_user_id: string; p_workspace_id: string }
         Returns: undefined
       }
       soft_delete_workspace: {
@@ -570,6 +592,7 @@ export type Database = {
         Args: { p_new_owner_id: string; p_workspace_id: string }
         Returns: undefined
       }
+      unpublish_canvas: { Args: { p_canvas_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
