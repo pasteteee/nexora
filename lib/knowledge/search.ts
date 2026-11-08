@@ -8,7 +8,7 @@ export async function search(
   signal?: AbortSignal,
 ) {
   const { sb } = await access(workspaceId);
-  const [vector] = await embed([query], signal);
+  const [vector] = await embed([query], signal, "query");
   const { data, error } = await sb.rpc("match_source_chunks", {
     p_workspace_id: workspaceId,
     p_embedding: JSON.stringify(vector),

@@ -10,7 +10,7 @@
 | Supabase, проект `nexora` (`gattldfwkbvkxodshzwb`) | БД, Auth, Storage, Realtime, логи, бэкапы | Dev2 / администратор |
 | Vercel | сборки, переменные, логи функций, откат | Dev1, администратор |
 | GitHub `pasteteee/nexora` | код, CI, PR | команда |
-| xAI / Anthropic / OpenAI | ключи `AI_API_KEY`, `EMBEDDINGS_API_KEY`, расход | администратор |
+| xAI / Anthropic / OpenAI / Google Gemini | ключи `AI_API_KEY`, `EMBEDDINGS_API_KEY`, расход | администратор |
 | Gmail (пароль приложения) | SMTP для Auth и приглашений | администратор |
 
 Принцип: secret key Supabase, ключи ИИ и SMTP-пароль хранятся только в Vercel и Supabase,
@@ -105,7 +105,7 @@ select id, workspace_id, original_name, status, error_message, updated_at
 
 Все векторы индекса должны быть от одной модели размерности 1536.
 
-1. Задать новый `EMBEDDINGS_MODEL` (1536 измерений) в Vercel, Redeploy.
+1. Задать новый `EMBEDDINGS_MODEL` или `EMBEDDINGS_PROVIDER` (вектор 1536 измерений) в Vercel, Redeploy.
 2. `update public.sources set status = 'pending' where status = 'ready';`
 3. Пользователи (или скрипт от их имени) повторно запускают обработку. До переиндексации поиск
    по материалу недоступен.

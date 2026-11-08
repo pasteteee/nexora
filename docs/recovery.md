@@ -92,7 +92,7 @@ npx --yes supabase@2.121.0 db dump --linked --data-only --use-copy -f backup/dat
 |---|---|
 | Ключ провайдера отозван, кончились деньги | новый `AI_API_KEY` или другой `AI_PROVIDER` в Vercel → Redeploy |
 | Провайдер недоступен | временно переключить `AI_PROVIDER` на другой (xai / anthropic / openai) |
-| Сбой embeddings (OpenAI) | новый `EMBEDDINGS_API_KEY` → Redeploy → материалы в `error` обработать заново |
+| Сбой embeddings (Gemini) | новый `EMBEDDINGS_API_KEY` → Redeploy → материалы в `error` обработать заново |
 | Пользователи упираются в лимит | поднять `AI_REQUESTS_PER_HOUR` → Redeploy |
 | Обработка зависла в `processing` | повтор пользователем через 5 мин (захват через 310 с) или массово: |
 
