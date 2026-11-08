@@ -22,14 +22,22 @@ export function PresenceCursors({ canvasId }: { canvasId: string }) {
       return (o === "auto" || o === "scroll") && el.scrollHeight > el.clientHeight;
     }) ?? null;
     let sc: HTMLElement | null = scroller();
-    const measure = () => setView({ width: host.clientWidth, scroll: sc?.scrollTop ?? 0 });
+    // Looking for the scroller walks the whole page: at most once a second, never on every pointer move.
+    let lookedAt = performance.now();
+    const current = () => {
+      if (sc && host.contains(sc)) return sc;
+      const t = performance.now();
+      if (t - lookedAt > 1000) { lookedAt = t; sc = scroller(); }
+      return sc && host.contains(sc) ? sc : null;
+    };
+    const measure = () => setView({ width: host.clientWidth, scroll: current()?.scrollTop ?? 0 });
     const onMove = (e: PointerEvent) => {
-      if (!sc || !host.contains(sc)) sc = scroller();
+      const sc = current();
       const r = host.getBoundingClientRect();
       moveCursor({ x: Math.round(e.clientX - r.left - r.width / 2), y: Math.round(e.clientY - r.top + (sc?.scrollTop ?? 0)) });
     };
     const onLeave = () => moveCursor(null);
-    const onScroll = () => setView((v) => ({ ...v, scroll: sc?.scrollTop ?? 0 }));
+    const onScroll = () => { const top = current()?.scrollTop ?? 0; setView((v) => (v.scroll === top ? v : { ...v, scroll: top })); };
     const ro = new ResizeObserver(measure);
     ro.observe(host);
     measure();

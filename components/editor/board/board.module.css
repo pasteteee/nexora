@@ -49,16 +49,19 @@
 
 /* canvas and widgets */
 .canvas { position: relative; min-height: 60px; }
-.w { position: absolute; box-sizing: border-box; border-radius: var(--r-m); transition: top .2s cubic-bezier(.2,.8,.2,1), left .2s cubic-bezier(.2,.8,.2,1), width .2s cubic-bezier(.2,.8,.2,1); }
+/* Placed with transform, not top/left: moving and reflowing widgets is composited, with no layout or repaint of the page. */
+.w { position: absolute; left: 0; top: 0; box-sizing: border-box; border-radius: var(--r-m); transition: transform .2s cubic-bezier(.2,.8,.2,1), width .2s cubic-bezier(.2,.8,.2,1); }
 .w::after { content: ""; position: absolute; inset: -6px; border-radius: calc(var(--r-m) + 4px); border: 1px solid transparent; pointer-events: none; transition: border-color .12s; }
 .w[data-edit]:hover::after { border-color: var(--line); }
 .w[data-dragging] { transition: none; z-index: 40; box-shadow: 0 22px 50px -18px var(--shadow); background: var(--paper); rotate: .4deg; opacity: .96; pointer-events: none; }
 .w[data-dropped]::after { border-color: var(--accent); }
-:global(body[data-bd-dragging]), :global(body[data-bd-dragging] *) { cursor: grabbing !important; user-select: none; }
-:global(body[data-bd-resizing]), :global(body[data-bd-resizing] *) { cursor: ew-resize !important; user-select: none; }
-:global(body[data-bd-resizing]) .w { transition: none; }
-.ph { position: absolute; border: 2px dashed var(--accent); background: var(--accent-soft); border-radius: var(--r-m); transition: top .15s ease-out, left .15s ease-out, width .15s ease-out; }
-.ghost { position: absolute; z-index: 40; pointer-events: none; padding: 14px 16px; border-radius: var(--r-m); background: var(--paper); border: 1px solid var(--line); box-shadow: 0 22px 50px -18px var(--shadow); font: 600 14px var(--f-ui); }
+/* While dragging or resizing, a transparent shield takes the pointer: no hover effects and no hit testing of 100+ widgets.
+   An inherited property (cursor, pointer-events, user-select) switched on the page instead would restyle every node in one frame. */
+.shield { position: fixed; inset: 0; z-index: 999; cursor: grabbing; touch-action: none; }
+.shield[data-mode="resize"] { cursor: ew-resize; }
+.bd[data-resizing] .w { transition: none; }
+.ph { position: absolute; left: 0; top: 0; border: 2px dashed var(--accent); background: var(--accent-soft); border-radius: var(--r-m); transition: transform .15s ease-out, width .15s ease-out; }
+.ghost { position: absolute; left: 0; top: 0; will-change: transform; z-index: 40; pointer-events: none; padding: 14px 16px; border-radius: var(--r-m); background: var(--paper); border: 1px solid var(--line); box-shadow: 0 22px 50px -18px var(--shadow); font: 600 14px var(--f-ui); }
 .body { position: relative; }
 
 /* floating toolbar above the widget: never takes space */

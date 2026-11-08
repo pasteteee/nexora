@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ImageView } from "@/components/editor/elements/ImageView";
+import { useEditor } from "@/lib/editor/store";
 import { SourceCard } from "@/components/editor/elements/SourceCard";
 import { compileFn, fmtNum, niceStep, toTex } from "@/lib/editor/board/math";
 import { NOTE_COLORS, NOTE_LIMIT, dataOf, randomIn, linesOf, plural, uid, type DiagramNode, type DiagramShape, type NoteWidget, type Widget, type WidgetData, type WidgetType } from "@/lib/editor/board/model";
@@ -349,6 +350,8 @@ function CodeView({ w }: WidgetProps) {
 /* ---------------- table of contents ---------------- */
 function TocView() {
   const api = useBoard();
+  // Headings live in other widgets: follow the page, not only this widget.
+  useEditor((st) => st.els);
   const heads = api.ordered().filter((x) => x.type === "text").flatMap((x) => linesOf(x.el).filter((l) => /^h[123]$/.test(l.t) && l.text).map((l) => ({ w: x.id, l })));
   return <div className={s.stack}>
     <div className={s.tocH}>Содержание</div>

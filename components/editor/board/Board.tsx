@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { useEditor } from "@/lib/editor/store";
 import { makeElement, topZ } from "@/lib/editor/factory";
@@ -14,11 +14,20 @@ import {
 import type { CanvasElement, NotebookTheme } from "@/lib/types";
 import { BoardContext, useBoard as useContextApi, type BoardApi, type FocusRequest } from "./context";
 import { LayerContext, Menu, Popover, type MenuItem } from "./Popover";
-import { WIDGETS } from "./Widgets";
+import { WIDGETS, type WidgetProps } from "./Widgets";
 import s from "./board.module.css";
 
 type Drag = { id: string | null; type: WidgetType; span: number; h: number; col: number; y: number; left: number; top: number; keys: Record<string, number>; side: Side | null };
 type Placed = { id: string; col: number; span: number; key: number; h: number; top: number };
+/** Handlers a widget frame calls. The object is stable, so frames re-render only when their own widget changes. */
+type FrameControl = {
+  measure(n: HTMLElement | null): void | (() => void);
+  startDrag(e: React.PointerEvent, w: Widget, open: () => void): void;
+  keyMove(e: React.KeyboardEvent, w: Widget): void;
+  startResize(e: React.PointerEvent, w: Widget): void;
+  menu(w: Widget): MenuItem[];
+};
+const API_METHODS = ["setContent", "setStyle", "setData", "setLines", "remove", "add", "insertAtLine", "focus", "ordered", "notify"] as const;
 
 const nextKey = (ws: Widget[], key: number) => ws.reduce((m, w) => (w.layout.key > key && w.layout.key < m ? w.layout.key : m), Infinity);
 const between = (a: number, b: number, k = 1, n = 2) => (Number.isFinite(b) ? a + ((b - a) * k) / n : a + k);
@@ -68,29 +77,30 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
   const [focusTick, setFocusTick] = useState(0);
   const placedRef = useRef<Placed[]>([]);
 
-  // Widget heights drive the packing; a resize observer keeps them current.
-  useEffect(() => {
-    const obs = new ResizeObserver((entries) => {
-      setHeights((cur) => {
-        let next = cur;
-        for (const e of entries) {
-          const n = e.target as HTMLElement, id = n.dataset.wid;
-          if (id && cur[id] !== n.offsetHeight) { if (next === cur) next = { ...cur }; next[id] = n.offsetHeight; }
-        }
-        return next;
-      });
+  // Widget heights drive the packing; a resize observer keeps them current. It is created on the first widget,
+  // because widgets that are on the page at mount attach before any effect runs.
+  const observer = useCallback(() => ro.current ??= new ResizeObserver((entries) => {
+    setHeights((cur) => {
+      let next = cur;
+      for (const e of entries) {
+        const n = e.target as HTMLElement, id = n.dataset.wid;
+        if (id && cur[id] !== n.offsetHeight) { if (next === cur) next = { ...cur }; next[id] = n.offsetHeight; }
+      }
+      return next;
     });
-    ro.current = obs;
+  }), []);
+  useEffect(() => {
     const c = canvas.current;
     const cw = new ResizeObserver(() => setWidth(c?.clientWidth ?? 0));
     if (c) { cw.observe(c); setWidth(c.clientWidth); }
-    return () => { obs.disconnect(); cw.disconnect(); ro.current = null; };
+    return () => { cw.disconnect(); ro.current?.disconnect(); ro.current = null; };
   }, []);
   const measure = useCallback((n: HTMLElement | null) => {
     if (!n) return;
-    ro.current?.observe(n);
-    return () => { ro.current?.unobserve(n); };
-  }, []);
+    const obs = observer();
+    obs.observe(n);
+    return () => { obs.unobserve(n); };
+  }, [observer]);
 
   const narrow = width > 0 && width < NARROW;
   const stepX = (width - GAP * (COLS - 1)) / COLS + GAP, cellW = stepX - GAP;
@@ -215,10 +225,24 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       api.focus({ id: el.id, open: type === "formula" });
     },
     focus(req) { pending.current = req; setFocusTick((n) => n + 1); },
-    ordered() { return [...placedRef.current].sort((a, b) => a.top - b.top || a.col - b.col).map((p) => widgets.find((w) => w.id === p.id)).filter((w): w is Widget => !!w); },
+    ordered() {
+      // Straight from the store and packed again, so a heading typed or a widget moved a moment ago is already in place.
+      const list = pageWidgets(st().els), h = new Map(placedRef.current.map((p) => [p.id, p.h]));
+      const byId = new Map(list.map((w) => [w.id, w]));
+      return pack(list.map((w) => ({ id: w.id, col: narrow ? 0 : w.layout.col, span: narrow ? COLS : w.layout.span, key: w.layout.key, h: h.get(w.id) ?? heights[w.id] ?? 60 })))
+        .sort((a, b) => a.top - b.top || a.col - b.col).map((p) => byId.get(p.id)!);
+    },
     notify,
   };
   void focusTick;
+  // Children get a stable API that always calls this render's methods: typing in one widget does not re-render the others.
+  const impl = useRef(api);
+  useLayoutEffect(() => { impl.current = api; });
+  const stableApi = useMemo<BoardApi>(() => {
+    const out = { edit: canEdit } as Record<string, unknown>;
+    for (const k of API_METHODS) out[k] = (...a: unknown[]) => (impl.current[k] as (...x: unknown[]) => unknown)(...a);
+    return out as BoardApi;
+  }, [canEdit]);
 
   /* ---------- writing at the end of the page ---------- */
   function writeAtEnd() {
@@ -242,13 +266,16 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
   function sideAt(ev: PointerEvent, cr: DOMRect, w: Widget | null, span: number): Side | null {
     for (const o of widgets) {
       if (o.id === w?.id) continue;
-      const node = canvas.current?.querySelector<HTMLElement>(`[data-wid="${CSS.escape(o.id)}"]`);
-      if (!node) continue;
       // Columns as they would be without this widget beside them, so the slot does not flicker while the target narrows.
       const own = w?.layout.beside?.id === o.id ? w.layout.beside : null;
       const lo = own ? { id: o.id, col: own.col, span: own.span } : { id: o.id, col: o.layout.col, span: o.layout.span };
-      const b = box(lo.col, lo.span), r = node.getBoundingClientRect(), x0 = cr.left + b.left;
-      if (ev.clientX < x0 - 24 || ev.clientX > x0 + b.width + 24 || ev.clientY < r.top || ev.clientY > r.bottom) continue;
+      const b = box(lo.col, lo.span), x0 = cr.left + b.left;
+      // Columns first: the DOM is read only for the few widgets under the pointer.
+      if (ev.clientX < x0 - 24 || ev.clientX > x0 + b.width + 24) continue;
+      const node = canvas.current?.querySelector<HTMLElement>(`[data-wid="${CSS.escape(o.id)}"]`);
+      if (!node) continue;
+      const r = node.getBoundingClientRect();
+      if (ev.clientY < r.top || ev.clientY > r.bottom) continue;
       return sideSlot(lo, span, (ev.clientX - x0) / b.width);
     }
     return null;
@@ -268,7 +295,6 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
     const begin = () => {
       const keys = Object.fromEntries(placedRef.current.map((p) => [p.id, p.top]));
       cur = { id: w?.id ?? null, type, span, h: node?.offsetHeight ?? 120, col: w?.layout.col ?? 0, y: w ? keys[w.id] ?? 0 : 1e9, left: 0, top: 0, keys, side: null };
-      document.body.setAttribute("data-bd-dragging", "");
     };
     if (started) begin();
     const move = (ev: PointerEvent) => {
@@ -282,7 +308,6 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
     };
     const up = (ev: PointerEvent) => {
       document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", up);
-      document.body.removeAttribute("data-bd-dragging");
       const d = cur; setDrag(null);
       if (!started || !d) { if (!started) onTap?.(); return; }
       if (!w) {
@@ -334,14 +359,12 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
     e.preventDefault(); e.stopPropagation();
     const sx = e.clientX, span0 = w.layout.span;
     let span = span0;
-    document.body.setAttribute("data-bd-resizing", "");
     const move = (ev: PointerEvent) => {
       span = Math.max(MIN_SPAN, Math.min(COLS - w.layout.col, span0 + Math.round((ev.clientX - sx) / stepX)));
       setResize({ id: w.id, span, x: ev.clientX, y: ev.clientY });
     };
     const up = () => {
       document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", up);
-      document.body.removeAttribute("data-bd-resizing");
       setResize(null);
       if (span !== span0) writeLayouts({ [w.id]: { ...plain(w.layout), span } });
     };
@@ -356,14 +379,37 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
     writeLayouts({}, [copy]);
   };
 
+  const menuFor = (w: Widget): MenuItem[] => {
+    const l = layoutOf(w);
+    return [
+      { section: "Ширина" },
+      { label: "На всю ширину", ico: "▭", hint: l.span === COLS ? "сейчас" : undefined, run: () => setSpan(w, COLS) },
+      { label: "Половина", ico: "◧", hint: l.span === 12 ? "сейчас" : undefined, run: () => setSpan(w, 12) },
+      { label: "Треть", ico: "◫", hint: l.span === 8 ? "сейчас" : undefined, run: () => setSpan(w, 8) },
+      { section: "Действия" },
+      { label: "Дублировать", ico: "⧉", run: () => duplicate(w) },
+      { label: "Удалить", ico: "×", danger: true, run: () => api.remove(w.id) },
+    ];
+  };
+  const frameImpl: Omit<FrameControl, "measure"> = { startDrag: (e, w, open) => startDrag(e, w, w.type, open), keyMove, startResize, menu: menuFor };
+  const ctlImpl = useRef(frameImpl);
+  useLayoutEffect(() => { ctlImpl.current = frameImpl; });
+  const ctl = useMemo<FrameControl>(() => ({
+    measure,
+    startDrag: (e, w, open) => ctlImpl.current.startDrag(e, w, open),
+    keyMove: (e, w) => ctlImpl.current.keyMove(e, w),
+    startResize: (e, w) => ctlImpl.current.startResize(e, w),
+    menu: (w) => ctlImpl.current.menu(w),
+  }), [measure]);
+
   const galleryItems = CATALOG.map((c) => ({ ...c }));
   const focusedWidget = () => {
     const id = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>("[data-wid]")?.dataset.wid;
     return widgets.find((w) => w.id === id) ?? null;
   };
 
-  return <BoardContext.Provider value={api}><LayerContext.Provider value={layer}>
-    <div ref={setLayer} className={s.bd} data-nb={theme === "clean" ? undefined : theme}
+  return <BoardContext.Provider value={stableApi}><LayerContext.Provider value={layer}>
+    <div ref={setLayer} className={s.bd} data-nb={theme === "clean" ? undefined : theme} data-resizing={resize ? "" : undefined}
       onKeyDown={(e) => {
         const t = e.target as HTMLElement;
         if (canEdit && !t.matches("textarea,input,[contenteditable]") && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
@@ -379,23 +425,13 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
           {canEdit && <button type="button" className={s.btnPrimary} aria-haspopup="dialog" onClick={(e) => setGallery(e.currentTarget)}>+ Виджет</button>}</span>
       </div>
       <div ref={canvas} className={s.canvas} style={{ height: bottom + 24 }}>
-        {drag && <div className={s.ph} style={{ ...box(drag.col, drag.span), top: tops.__ph, height: drag.h }} />}
+        {drag && (() => { const b = box(drag.col, drag.span); return <div className={s.ph} style={{ transform: `translate(${b.left}px, ${tops.__ph}px)`, width: b.width, height: drag.h }} />; })()}
         {widgets.map((w) => {
           const l = layoutOf(w), b = box(l.col, l.span), dragging = drag?.id === w.id;
-          return <Frame key={w.id} w={w} measure={measure} dragging={dragging} dropped={dropped === w.id} notice={notices[w.id]}
-            style={dragging ? { left: drag!.left, top: drag!.top, width: b.width } : { left: b.left, top: tops[w.id] ?? 0, width: b.width }}
-            onHandle={(e, open) => startDrag(e, w, w.type, open)} onHandleKey={(e) => keyMove(e, w)} onResize={narrow ? undefined : (e) => startResize(e, w)}
-            menu={[
-              { section: "Ширина" },
-              { label: "На всю ширину", ico: "▭", hint: l.span === COLS ? "сейчас" : undefined, run: () => setSpan(w, COLS) },
-              { label: "Половина", ico: "◧", hint: l.span === 12 ? "сейчас" : undefined, run: () => setSpan(w, 12) },
-              { label: "Треть", ico: "◫", hint: l.span === 8 ? "сейчас" : undefined, run: () => setSpan(w, 8) },
-              { section: "Действия" },
-              { label: "Дублировать", ico: "⧉", run: () => duplicate(w) },
-              { label: "Удалить", ico: "×", danger: true, run: () => api.remove(w.id) },
-            ]} />;
+          return <Frame key={w.id} w={w} ctl={ctl} dragging={dragging} dropped={dropped === w.id} notice={notices[w.id]} resizable={!narrow}
+            left={dragging ? drag!.left : b.left} top={dragging ? drag!.top : tops[w.id] ?? 0} width={b.width} />;
         })}
-        {drag && !drag.id && <div className={s.ghost} style={{ left: drag.left, top: drag.top, width: box(0, drag.span).width }}>{CATALOG_BY_TYPE[drag.type]?.name}</div>}
+        {drag && !drag.id && <div className={s.ghost} style={{ transform: `translate(${drag.left}px, ${drag.top}px)`, width: box(0, drag.span).width }}>{CATALOG_BY_TYPE[drag.type]?.name}</div>}
       </div>
       {canEdit && <div className={s.end} data-empty={!widgets.length || undefined} tabIndex={0} role="button" aria-label="Продолжить писать в конце страницы"
         onClick={() => writeAtEnd()}
@@ -408,6 +444,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       </div>}
       {!canEdit && !widgets.length && <p className={s.empty}>На этой странице пока ничего нет</p>}
       </div>
+      {(drag || resize) && <div className={s.shield} data-mode={resize ? "resize" : "drag"} aria-hidden="true" />}
       {resize && <div className={s.tip} style={{ left: resize.x + 14, top: resize.y - 30 }}>{resize.span === COLS ? "на всю ширину" : `${Math.round(resize.span / COLS * 100)} % ширины`}</div>}
       {gallery && <Popover anchor={gallery} onClose={() => setGallery(null)} label="Виджеты" wide>
         <div className={s.tiles}>
@@ -435,10 +472,11 @@ function GalleryTile({ name, ico, about, onPick, onDragOut }: { name: string; ic
   </button>;
 }
 
-function Frame({ w, style, measure, dragging, dropped, notice, onHandle, onHandleKey, onResize, menu }: {
-  w: Widget; style: React.CSSProperties; measure(n: HTMLElement | null): void | (() => void); dragging: boolean; dropped: boolean; notice?: string;
-  onHandle(e: React.PointerEvent, open: () => void): void; onHandleKey(e: React.KeyboardEvent): void; onResize?(e: React.PointerEvent): void; menu: MenuItem[];
-}) {
+type FrameProps = { w: Widget; ctl: FrameControl; left: number; top: number; width: number; dragging: boolean; dropped: boolean; notice?: string; resizable: boolean };
+const sameWidget = (a: Widget, b: Widget) => a.el === b.el && a.type === b.type && sameLayout(a.layout, b.layout);
+
+/** Frame of one widget. Memoised: during a drag only the frames that move re-render, and their content does not. */
+const Frame = memo(function Frame({ w, ctl, left, top, width, dragging, dropped, notice, resizable }: FrameProps) {
   const api = useContextApi();
   const [form, setForm] = useState<string | null>(null);
   const [frame, setFrame] = useState<HTMLElement | null>(null);
@@ -448,15 +486,16 @@ function Frame({ w, style, measure, dragging, dropped, notice, onHandle, onHandl
   const actions = api.edit && def.actions ? def.actions(w, api, (f) => setForm(f || null), form) : [];
   const tone = w.type === "callout" ? (w.el.content.data as { tone?: string } | undefined)?.tone ?? "info" : undefined;
   const color = w.type === "note" ? String(w.el.style.color ?? "yellow") : undefined;
+  const { measure } = ctl;
   const ref = useCallback((n: HTMLElement | null) => { setFrame(n); return measure(n) ?? undefined; }, [measure]);
   return <section ref={ref} data-wid={w.id} data-type={w.type} data-tone={tone} data-color={color} data-card={def.card || undefined}
     data-dragging={dragging || undefined} data-dropped={dropped || undefined} data-edit={api.edit || undefined}
-    className={s.w} style={style} aria-label={name}>
+    className={s.w} style={{ transform: `translate(${left}px, ${top}px)`, width }} aria-label={name}>
     {/* Gutter handle on the left: drag it to move the widget, press it for the widget menu. */}
     {api.edit && <button type="button" className={s.handle} data-handle title="Тяните, чтобы переставить. Нажмите, чтобы открыть меню"
       aria-label={`Переместить или изменить виджет «${name}»`} aria-haspopup="menu" aria-expanded={!!more}
-      onPointerDown={(e) => { const n = e.currentTarget; onHandle(e, () => setMore(n)); }}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMore(e.currentTarget); } else onHandleKey(e); }}>
+      onPointerDown={(e) => { const n = e.currentTarget; ctl.startDrag(e, w, () => setMore(n)); }}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMore(e.currentTarget); } else ctl.keyMove(e, w); }}>
       <svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="2.5" cy="3" r="1.4" /><circle cx="7.5" cy="3" r="1.4" /><circle cx="2.5" cy="8" r="1.4" /><circle cx="7.5" cy="8" r="1.4" /><circle cx="2.5" cy="13" r="1.4" /><circle cx="7.5" cy="13" r="1.4" /></svg>
     </button>}
     {/* Pill with the widget's own actions; none, no pill. */}
@@ -465,9 +504,16 @@ function Frame({ w, style, measure, dragging, dropped, notice, onHandle, onHandl
         ? <button key={a.label} type="button" className={s.sw} data-color={a.swatch} aria-pressed={a.on} title={a.title} aria-label={a.title ?? a.label} onPointerDown={(e) => e.preventDefault()} onClick={a.run} />
         : <button key={a.label} type="button" aria-pressed={a.on} title={a.title} onPointerDown={(e) => e.preventDefault()} onClick={a.run}>{a.label}</button>)}
     </div>}
-    <div className={s.body}><def.View w={w} form={form} setForm={setForm} frame={frame} /></div>
-    {api.edit && onResize && <div className={s.rz} title="Потяните, чтобы изменить ширину" onPointerDown={onResize} />}
+    <div className={s.body}><Body w={w} form={form} setForm={setForm} frame={frame} /></div>
+    {api.edit && resizable && <div className={s.rz} title="Потяните, чтобы изменить ширину" onPointerDown={(e) => ctl.startResize(e, w)} />}
     {notice && <div className={s.notice} role="status">{notice}</div>}
-    {more && <Menu anchor={more} title={name} items={menu} onClose={() => setMore(null)} />}
+    {more && <Menu anchor={more} title={name} items={ctl.menu(w)} onClose={() => setMore(null)} />}
   </section>;
-}
+}, (a, b) => sameWidget(a.w, b.w) && a.ctl === b.ctl && a.left === b.left && a.top === b.top && a.width === b.width
+  && a.dragging === b.dragging && a.dropped === b.dropped && a.notice === b.notice && a.resizable === b.resizable);
+
+/** Content of a widget: re-renders when its element changes, not when the frame moves. */
+const Body = memo(function Body(p: WidgetProps) {
+  const View = WIDGETS[p.w.type].View;
+  return <View {...p} />;
+}, (a, b) => sameWidget(a.w, b.w) && a.form === b.form && a.setForm === b.setForm && a.frame === b.frame);
