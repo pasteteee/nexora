@@ -20,6 +20,18 @@ const removed = new Set<string>();
 let timer: ReturnType<typeof setTimeout> | undefined;
 let due = 0;
 let inflight: Promise<void> | null = null;
+const inflightIds = new Set<string>();
+
+/** Подтверждённые сохранения: демо-режим рассылает их другим вкладкам */
+type SavedListener = (p: { upserted: CanvasElement[]; removed: string[] }) => void;
+const savedListeners = new Set<SavedListener>();
+export function onSaved(fn: SavedListener): () => void {
+  savedListeners.add(fn);
+  return () => { savedListeners.delete(fn); };
+}
+/** Объект ждёт сохранения или сохраняется: удалённые версии не должны его перезаписать */
+export const isPendingLocal = (id: string) => dirty.has(id) || removed.has(id) || inflightIds.has(id);
+export const pendingLocalIds = () => [...dirty, ...removed, ...inflightIds];
 
 export function bindAutosave(lookup: (id: string) => CanvasElement | undefined) {
   getEl = lookup;
@@ -53,12 +65,17 @@ export async function flush(): Promise<void> {
   const up = [...dirty].map(getEl).filter((e): e is CanvasElement => !!e);
   const del = [...removed];
   dirty.clear(); removed.clear();
+  up.forEach((e) => inflightIds.add(e.id)); del.forEach((id) => inflightIds.add(id));
   useSaveStatus.setState({ status: "saving" });
   inflight = (async () => {
     try {
       await data.upsertElements(up);
       await data.deleteElements(del);
       useSaveStatus.setState({ status: dirty.size || removed.size ? "pending" : "saved", error: null });
+      if (savedListeners.size) {
+        const saved = { upserted: up, removed: del };
+        savedListeners.forEach((fn) => { try { fn(saved); } catch { /* рассылка не влияет на сохранение */ } });
+      }
     } catch (e) {
       // вернуть в очередь, если за время запроса объект не изменили и не удалили
       up.forEach((el) => !removed.has(el.id) && dirty.add(el.id));
@@ -66,6 +83,7 @@ export async function flush(): Promise<void> {
       useSaveStatus.setState({ status: "error", error: e instanceof Error ? e.message : "Нет соединения" });
     } finally {
       inflight = null;
+      inflightIds.clear();
     }
   })();
   await inflight;
@@ -83,4 +101,4 @@ export async function saveBeforeNavigation(): Promise<void> {
 }
 
 /** Для тестов */
-export function resetAutosave() { clearTimeout(timer); timer = undefined; dirty.clear(); removed.clear(); inflight = null; useSaveStatus.setState({ status: "saved", error: null }); }
+export function resetAutosave() { clearTimeout(timer); timer = undefined; dirty.clear(); removed.clear(); inflight = null; inflightIds.clear(); savedListeners.clear(); useSaveStatus.setState({ status: "saved", error: null }); }

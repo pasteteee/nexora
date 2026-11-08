@@ -30,6 +30,11 @@ export type EditorState = {
   /** Несколько изменений одним шагом истории: группировка, разгруппировка */
   batch(p: { add?: CanvasElement[]; patch?: Record<string, Partial<CanvasElement>>; remove?: string[] }): boolean;
 
+  /** Подтверждённые изменения других участников: без истории отмены и без автосохранения */
+  applyRemote(p: { upsert?: CanvasElement[]; remove?: string[] }): void;
+  /** Смена роли во время работы (Realtime) */
+  setCanEdit(canEdit: boolean): void;
+
   /** История текущей сессии: только собственные действия, не меньше 50 шагов (ТЗ 4.2.4) */
   past: HistoryEntry[];
   future: HistoryEntry[];
@@ -168,6 +173,16 @@ export const useEditor = create<EditorState>((set, get) => ({
     if (remove.length) markRemoved(remove);
     return true;
   },
+
+  applyRemote({ upsert = [], remove = [] }) {
+    if (!upsert.length && !remove.length) return;
+    const els = { ...get().els };
+    for (const e of upsert) els[e.id] = e;
+    for (const id of remove) delete els[id];
+    const selected = get().selected.filter((id) => els[id]);
+    set({ els, bounds: boundsFor(Object.values(els)), ...(selected.length !== get().selected.length ? { selected } : {}) });
+  },
+  setCanEdit(canEdit) { if (get().canEdit !== canEdit) set({ canEdit }); },
 
   undo() {
     const { past, future } = get();

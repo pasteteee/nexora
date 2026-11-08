@@ -6,6 +6,7 @@ import { toast } from "@/components/ui";
 import { data } from "@/lib/data";
 import { useEditor } from "@/lib/editor/store";
 import { saveBeforeNavigation } from "@/lib/editor/autosave";
+import { usePageRealtime } from "@/lib/realtime";
 import { SaveIndicator } from "./SaveIndicator";
 import { HistoryButtons } from "./HistoryButtons";
 import { PagesPanel } from "./PagesPanel";
@@ -47,6 +48,8 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
   const [loadError, setLoadError] = useState("");
   const [retry, setRetry] = useState(0);
   const [navigating, setNavigating] = useState(false);
+  // совместная работа: объекты других участников, presence и смена роли (вид не меняется)
+  usePageRealtime(ready === canvasId ? canvasId : null, workspaceId);
   useEffect(() => {
     let alive = true;
     async function load() {
