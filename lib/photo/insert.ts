@@ -12,7 +12,7 @@ import type { PhotoBlock } from "./blocks";
 
 export type PhotoImage = { content: ImageContent; width: number; height: number };
 const placement = (layout: Layout) => ({ layout, documentOrder: layout.key });
-const SPAN: Record<PhotoBlock["kind"], number> = { text: COLS, formula: COLS, plot: 14, table: 16 };
+const SPAN: Record<PhotoBlock["kind"], number> = { text: COLS, formula: COLS, plot: 12, table: 16 };
 
 /** Titles of plots and tables go into the text before them as a small heading. */
 function withTitles(blocks: PhotoBlock[]): PhotoBlock[] {
