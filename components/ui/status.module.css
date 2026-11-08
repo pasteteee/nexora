@@ -4,9 +4,7 @@
   background-image: radial-gradient(var(--grid) 1.2px, transparent 1.2px); background-size: 24px 24px;
 }
 .code {
-  font-size: clamp(120px, 26vw, 340px); line-height: 0.85; font-weight: 800; letter-spacing: -0.06em;
-  background: linear-gradient(120deg, var(--accent), #b07cf0 60%, #e8749a);
-  -webkit-background-clip: text; background-clip: text; color: transparent;
+  font: 600 clamp(120px, 26vw, 340px)/0.85 var(--font-head); letter-spacing: -0.05em; color: var(--accent);
   animation: float 5s ease-in-out infinite alternate;
 }
 .text { margin: 18px 0 22px; color: var(--ink-2); font-size: 17px; }

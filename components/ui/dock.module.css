@@ -1,0 +1,60 @@
+/* Bottom dock: the one place for navigation and actions on app screens.
+   Outside a notebook page it uses the app tokens; inside the page (.bd) it picks up the notebook theme. */
+.dock {
+  /* centred over the free area between side panels (they set --dock-left / --dock-right) */
+  position: fixed; bottom: max(14px, env(safe-area-inset-bottom, 0px)); z-index: 60;
+  left: calc(var(--dock-left, 0px) + (100vw - var(--dock-left, 0px) - var(--dock-right, 0px)) / 2);
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px; padding: 5px;
+  max-width: calc(100vw - var(--dock-left, 0px) - var(--dock-right, 0px) - 24px);
+  background: var(--surface); color: var(--ink-2);
+  border: 1px solid var(--line-strong, var(--line)); border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(20, 30, 50, 0.06), 0 14px 34px -14px rgba(20, 30, 50, 0.32);
+  font: 500 13.5px/1 var(--font);
+  animation: dockIn 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.group { display: flex; align-items: center; gap: 2px; flex: none; }
+.sep { width: 1px; height: 22px; flex: none; background: var(--line); margin: 0 6px; }
+
+.btn {
+  position: relative; flex: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  height: 40px; min-width: 40px; padding: 0 10px;
+  border: 0; border-radius: 9px; background: transparent; color: var(--ink-2);
+  font: inherit; white-space: nowrap; cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+.btn:hover { background: var(--surface-2); color: var(--ink); }
+.btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn[aria-pressed="true"], .btn[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent); }
+.btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+.btn svg { flex: none; }
+.primary { background: var(--accent); color: var(--accent-ink); padding: 0 14px 0 11px; font-weight: 600; }
+.primary:hover { background: color-mix(in oklab, var(--accent) 86%, var(--ink)); color: var(--accent-ink); }
+.count { flex: none; min-width: 46px; padding: 0 2px; text-align: center; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-3); }
+
+/* Tooltip above: the dock sits at the bottom edge */
+.btn[data-tip]:hover::after, .btn[data-tip]:focus-visible::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+  padding: 5px 8px; border-radius: 6px; background: var(--ink); color: var(--surface);
+  font: 500 12px/1.2 var(--font); white-space: nowrap; pointer-events: none; z-index: 2;
+  animation: tipIn 120ms ease-out both;
+}
+
+.btn[aria-expanded="true"]::after { display: none; }
+
+@keyframes dockIn { from { opacity: 0; transform: translate(-50%, 12px); } }
+@keyframes tipIn { from { opacity: 0; } }
+
+@media (max-width: 760px) {
+  .dock { left: 8px; right: 8px; transform: none; max-width: none; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; animation-name: dockInMobile; }
+  .dock::-webkit-scrollbar { display: none; }
+  .label { display: none; }
+  .primary .label { display: inline; }
+  .btn[data-tip]:hover::after, .btn[data-tip]:focus-visible::after { display: none; }
+  .sep { margin: 0 3px; }
+}
+@keyframes dockInMobile { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) { .dock { animation: dockFade 200ms ease-out both; } }
+@keyframes dockFade { from { opacity: 0; } }

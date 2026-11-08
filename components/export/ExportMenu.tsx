@@ -7,12 +7,13 @@ import { documentBlocks } from "@/lib/editor/document";
 import { exportFileName } from "@/lib/export/area";
 import { buildPageExport } from "@/lib/export/json";
 import type { Canvas } from "@/lib/types";
+import { DockButton } from "@/components/ui/Dock";
 import s from "./menu.module.css";
 
 type Busy = null | "png" | "pdf" | "json";
 
 /** Экспорт страницы для владельца и редактора (ТЗ 4.2.10, 4.2.4): PNG 1×/2× с фоном/без, PDF, JSON. */
-export function ExportMenu({ page }: { page: Canvas }) {
+export function ExportMenu({ page, compact }: { page: Canvas; /** dock button; the panel opens upwards */ compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState<"page" | "selection">("page");
   const [scale, setScale] = useState<1 | 2>(2);
@@ -65,10 +66,12 @@ export function ExportMenu({ page }: { page: Canvas }) {
     } finally { setBusy(null); }
   }
 
-  return <div ref={box} className={s.wrap}>
-    <button className={s.trigger} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(!open)} title="Экспорт">
-      <Download size={17} /><span>Экспорт</span>
-    </button>
+  return <div ref={box} className={s.wrap} data-up={compact || undefined}>
+    {compact
+      ? <DockButton icon={<Download size={18} />} tip="Экспорт: PNG, PDF, JSON" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(!open)} />
+      : <button className={s.trigger} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(!open)} title="Экспорт">
+        <Download size={17} /><span>Экспорт</span>
+      </button>}
     {open && <div className={s.panel} role="dialog" aria-label="Экспорт страницы">
       <fieldset className={s.group}>
         <legend>Что экспортировать</legend>

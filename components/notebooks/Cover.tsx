@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import s from "./notebooks.module.css";
 
-const NOTES = ["--note-yellow", "--note-pink", "--note-green", "--note-blue", "--note-violet"];
+/** Bookcloth colours of notebook covers. Picked by id, so a notebook keeps its colour. */
+const CLOTH = ["#1f4e8c", "#0e6b6b", "#a8432a", "#5f6b2e", "#3a3f46", "#6b3a5b", "#9a6a1f", "#4a6a8f"];
 
 function hash(str: string) {
   let h = 2166136261;
@@ -8,16 +10,12 @@ function hash(str: string) {
   return h >>> 0;
 }
 
-/** Обложка тетради: детерминированная «мини-доска» из стикеров по id */
-export function Cover({ id }: { id: string }) {
-  const h = hash(id);
-  const pick = (n: number) => `var(${NOTES[(h >> (n * 3)) % NOTES.length]})`;
-  const base = ((h >> 4) % 360);
-  return (
-    <div className={s.cover} style={{ background: `linear-gradient(160deg, hsl(${base} 70% 93%), hsl(${(base + 50) % 360} 65% 86%))` }}>
-      <i style={{ left: `${10 + (h % 12)}%`, top: "22%", width: "34%", height: "38%", background: pick(1), rotate: `${(h % 7) - 3}deg` }} />
-      <i style={{ left: `${52 + (h % 9)}%`, top: `${14 + (h % 10)}%`, width: "26%", height: "30%", background: pick(2), rotate: `${((h >> 3) % 7) - 3}deg` }} />
-      <i style={{ left: `${40 + (h % 8)}%`, top: "58%", width: "22%", height: "26%", background: pick(3), borderRadius: "50%" }} />
-    </div>
-  );
+export const coverColor = (id: string) => CLOTH[hash(id) % CLOTH.length];
+
+/** Notebook cover: cloth with a spine and a paper label, like a school notebook on a shelf. */
+export function Cover({ id, children, muted }: { id: string; children?: ReactNode; muted?: boolean }) {
+  return <div className={s.cover} style={{ "--cloth": coverColor(id) } as React.CSSProperties} data-muted={muted || undefined}>
+    <span className={s.spine} aria-hidden />
+    <div className={s.label}>{children}</div>
+  </div>;
 }

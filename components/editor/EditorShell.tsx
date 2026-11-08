@@ -1,20 +1,16 @@
 "use client";
 import { notFound, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, FileText, PanelLeft, Plus, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui";
 import { data } from "@/lib/data";
 import { useEditor } from "@/lib/editor/store";
 import { saveBeforeNavigation } from "@/lib/editor/autosave";
 import { usePageRealtime } from "@/lib/realtime";
-import { CollabBar } from "@/components/collab/CollabBar";
 import { PresenceCursors } from "@/components/collab/PresenceCursors";
-import { SaveIndicator } from "./SaveIndicator";
-import { HistoryButtons } from "./HistoryButtons";
+import { EditorDock, LoadingDock } from "./Dock";
 import { PagesPanel } from "./PagesPanel";
 import { DocumentEditor } from "./DocumentEditor";
 import { KnowledgePanel } from "@/components/knowledge/KnowledgePanel";
-import { ExportMenu } from "@/components/export/ExportMenu";
 import { useUi } from "@/lib/editor/ui";
 import type { Canvas, NotebookTheme, WorkspaceCard } from "@/lib/types";
 import s from "./workspace.module.css";
@@ -25,7 +21,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
   const [pages, setPages] = useState<Canvas[]>([]);
   const [missing, setMissing] = useState(false);
   const [panel, setPanel] = useState(() => typeof window !== "undefined" && window.innerWidth >= 800);
-  const [knowledge, setKnowledge] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1100);
+  const [knowledge, setKnowledge] = useState(false);
   const [ready, setReady] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -44,7 +40,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
         if (!w || !c || c.workspaceId !== workspaceId || !list.some((p) => p.id === canvasId)) { setMissing(true); return; }
         useEditor.getState().init({ canvasId, canEdit: w.role !== "viewer", els,
           background: { type: c.backgroundType, spacing: c.backgroundSpacing } });
-        useUi.setState({ workspaceId, tool: "select", editing: null });
+        useUi.setState({ workspaceId, tool: "select", editing: null, gallery: null });
         setWs(w); setPages(list); setLoadError(""); setReady(canvasId);
       } catch (error) {
         if (alive) setLoadError(error instanceof Error ? error.message : "Не удалось открыть страницу");
@@ -90,37 +86,20 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
   const role = live.role ?? ws?.role;
   const canEdit = !!ws && !!role && role !== "viewer";
   const isReady = ready === canvasId && !!page;
+  const dock = ws && page ? <EditorDock workspaceId={workspaceId} workspaceName={ws.name} role={role ?? ws.role} page={page} pages={pages} index={index}
+    canEdit={canEdit} navigating={navigating} panel={panel} knowledge={knowledge} theme={ws.theme ?? "clean"} canTheme={role === "owner"}
+    onBack={() => void navigate("/app")} onPanel={() => setPanel(!panel)} onKnowledge={() => setKnowledge(!knowledge)}
+    go={go} addPage={() => void addPage()} onTheme={(t) => void changeTheme(t)} /> : null;
   return <main className={s.workspace}>
-    <header className={s.header}>
-      <div className={s.identity}>
-        <button className={s.iconButton} onClick={() => void navigate("/app")} aria-label="Все тетради" title="Все тетради"><ArrowLeft size={18} /></button>
-        <span className={s.brand}>Nexora<span /></span><span className={s.headerDivider} />
-        <span className={s.notebookName}>{ws?.name ?? "Тетрадь"}</span>
-      </div>
-      <div className={s.headerActions}>
-        {ws && page && <><CollabBar workspaceId={workspaceId} workspaceName={ws.name} role={role ?? ws.role} canvasId={canvasId} pageName={page.name} /><span className={s.headerDivider} /></>}
-        <HistoryButtons /><SaveIndicator />{canEdit && isReady && <ExportMenu page={page} />}<span className={s.headerDivider} />
-        <button className={s.toggle} aria-label="Панель страниц" aria-pressed={panel} onClick={() => setPanel(!panel)}><PanelLeft size={17} /><span>Страницы</span></button>
-        <button className={s.toggle} aria-label="Материалы и ИИ" aria-pressed={knowledge} onClick={() => setKnowledge(!knowledge)}><Sparkles size={17} /><span>Материалы и ИИ</span></button>
-      </div>
-    </header>
     <div className={s.layout} data-pages={panel} data-knowledge={knowledge}>
       {panel && ws && <div className={s.pagesDock}><PagesPanel workspaceId={workspaceId} current={canvasId} pages={pages} canEdit={canEdit}
         onChange={() => void refreshPages()} go={go} /></div>}
       <section className={s.document} aria-label="Документ">
         {isReady && <PresenceCursors canvasId={canvasId} />}
-        <div className={s.pageBar}>
-          <div><FileText size={15} /><span>{page?.name ?? "Загрузка страницы…"}</span></div>
-          <nav className={s.pageNavigation} aria-label="Переход между страницами">
-            <span>{index >= 0 ? `${index + 1} / ${pages.length}` : ""}</span>
-            <button aria-label="Предыдущая страница" disabled={navigating || index <= 0} onClick={() => go(pages[index - 1].id)}><ChevronLeft size={17} /></button>
-            <button aria-label="Следующая страница" disabled={navigating || index < 0 || index >= pages.length - 1} onClick={() => go(pages[index + 1].id)}><ChevronRight size={17} /></button>
-            {canEdit && <button aria-label="Добавить страницу" disabled={navigating} onClick={() => void addPage()}><Plus size={17} /></button>}
-          </nav>
-        </div>
         {loadError && !isReady ? <div className={s.loading} role="alert"><p>{loadError}</p><button onClick={() => setRetry((n) => n + 1)}>Повторить</button></div>
-          : isReady ? <DocumentEditor key={canvasId} page={page} theme={ws?.theme ?? "clean"} canTheme={role === "owner"} onTheme={(t) => void changeTheme(t)}
+          : isReady ? <DocumentEditor key={canvasId} page={page} notebook={ws?.name ?? "Тетрадь"} theme={ws?.theme ?? "clean"} dock={dock}
             onRenamed={() => void refreshPages()} onOpenMaterials={() => setKnowledge(true)} /> : <div className={s.loading} role="status">Открываем страницу…</div>}
+        {!isReady && <LoadingDock onBack={() => void navigate("/app")} />}
       </section>
       {knowledge && ws && <div className={s.knowledgeDock}><KnowledgePanel key={canvasId} workspaceId={workspaceId} canvasId={canvasId} canEdit={canEdit} docked open={knowledge} onOpenChange={setKnowledge} /></div>}
     </div>
