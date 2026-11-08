@@ -124,6 +124,11 @@ select id, workspace_id, original_name, status, error_message, updated_at
 - Сменить провайдера: `AI_PROVIDER` = `xai` | `anthropic` | `openai`, `AI_API_KEY`, при
   необходимости `AI_MODEL` → Redeploy. Индексы материалов не трогаются.
 - Бюджет и лимиты расходов задавайте в консоли провайдера.
+- **Фото в тетрадь** (`POST /api/ai/photo`): распознаёт снимок моделью Gemini с тем же ключом, что
+  и поиск (`EMBEDDINGS_API_KEY` при `EMBEDDINGS_PROVIDER=gemini`), либо с отдельным `GEMINI_API_KEY`.
+  Модель: `PHOTO_MODEL` (по умолчанию `gemini-3.8-flash`, при 404 пробуется `gemini-2.5-flash`).
+  Каждый снимок — запрос типа `photo_import` в общем часовом лимите. Обрезка, выпрямление и фильтры
+  скана выполняются в браузере, на сервер уходит только обработанный JPEG до 4 МиБ, он не сохраняется.
 
 ## Почта
 

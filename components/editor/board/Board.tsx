@@ -17,6 +17,8 @@ import { LayerContext, Menu, Popover, type MenuItem } from "./Popover";
 import { WIDGETS, type WidgetProps } from "./Widgets";
 import s from "./board.module.css";
 import { scrollBehavior } from "@/lib/motion";
+import { blocksToElements } from "@/lib/photo/insert";
+import { PHOTO_EVENT, PhotoImport, type PhotoEventDetail } from "@/components/editor/photo/PhotoImport";
 
 type Drag = { id: string | null; type: WidgetType; span: number; h: number; col: number; y: number; left: number; top: number; keys: Record<string, number>; side: Side | null };
 type Placed = { id: string; col: number; span: number; key: number; h: number; top: number };
@@ -30,7 +32,7 @@ type FrameControl = {
   startResize(e: React.PointerEvent, w: Widget): void;
   menu(w: Widget): MenuItem[];
 };
-const API_METHODS = ["setContent", "setStyle", "setData", "setLines", "remove", "add", "insertAtLine", "focus", "ordered", "notify"] as const;
+const API_METHODS = ["setContent", "setStyle", "setData", "setLines", "remove", "add", "insertAtLine", "focus", "ordered", "notify", "insertBlocks"] as const;
 
 const nextKey = (ws: Widget[], key: number) => ws.reduce((m, w) => (w.layout.key > key && w.layout.key < m ? w.layout.key : m), Infinity);
 const between = (a: number, b: number, k = 1, n = 2) => (Number.isFinite(b) ? a + ((b - a) * k) / n : a + k);
@@ -87,6 +89,14 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
   const placedRef = useRef<Placed[]>([]);
   const hintId = useId();
   const [said, setSaid] = useState("");
+  /** Photo import dialog: open with the widget the result goes after (null: the end of the page). */
+  const [photo, setPhoto] = useState<{ afterId: string | null } | null>(null);
+  useEffect(() => {
+    if (!canEdit) return;
+    const open = (e: Event) => setPhoto({ afterId: (e as CustomEvent<PhotoEventDetail | undefined>).detail?.afterId ?? null });
+    window.addEventListener(PHOTO_EVENT, open);
+    return () => window.removeEventListener(PHOTO_EVENT, open);
+  }, [canEdit]);
 
   // Widget heights drive the packing; a resize observer keeps them current. It is created on the first widget,
   // because widgets that are on the page at mount attach before any effect runs.
@@ -261,6 +271,19 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       const byId = new Map(list.map((w) => [w.id, w]));
       return pack(list.map((w) => ({ id: w.id, col: narrow ? 0 : w.layout.col, span: narrow ? COLS : w.layout.span, key: w.layout.key, h: h.get(w.id) ?? heights[w.id] ?? 60 })))
         .sort((a, b) => a.top - b.top || a.col - b.col).map((p) => byId.get(p.id)!);
+    },
+    insertBlocks(blocks, afterId, image) {
+      const state = st();
+      if (!state.canEdit || !state.canvasId) return;
+      const after = afterId ? widgets.find((w) => w.id === afterId) : null;
+      const maxKey = widgets.reduce((m, w) => Math.max(m, w.layout.key), 0);
+      const from = after ? after.layout.key : maxKey, to = after ? nextKey(widgets, after.layout.key) : Infinity;
+      const add = blocksToElements(blocks, state.canvasId, topZ(state.els), from, to, image);
+      if (!add.length) return;
+      const implicit = Object.fromEntries(widgets.filter((w) => !w.el.content.layout).map((w) => [w.id, w.layout]));
+      writeLayouts(implicit, add);
+      api.focus({ id: add[add.length - 1].id });
+      setSaid(`Добавлено с фото: ${add.length}`);
     },
     notify,
   };
@@ -479,6 +502,10 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       {gallery && <Popover anchor={gallery} onClose={() => setGallery(null)} label="Виджеты" wide>
         <div className={s.tiles}>
           <div className={s.tilesH}>Нажмите, чтобы добавить, или перетащите на нужное место</div>
+          <button type="button" className={s.tilePhoto} onClick={() => { const after = focusedWidget(); setGallery(null); setPhoto({ afterId: after?.id ?? null }); }}>
+            <span className={s.ico} aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg></span>
+            <span><b>Фото в тетрадь</b><small>Снимите конспект, формулу или график: станут текстом, формулой и графиком</small></span>
+          </button>
           {[...new Set(galleryItems.map((c) => c.g))].map((g) => <div key={g} className={s.tileGroup}>
             <div className={s.tilesG}>{g}</div>
             {galleryItems.filter((c) => c.g === g).map((c) => <GalleryTile key={c.t} name={c.name} ico={c.ico} about={c.about}
@@ -487,6 +514,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
           </div>)}
         </div>
       </Popover>}
+      {photo && <PhotoImport onClose={() => setPhoto(null)} onInsert={(blocks, image) => api.insertBlocks(blocks, photo.afterId, image)} />}
     </div>
   </LayerContext.Provider></BoardContext.Provider>;
 }
