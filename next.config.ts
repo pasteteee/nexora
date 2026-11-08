@@ -30,6 +30,25 @@ for (const [name, value] of Object.entries(process.env)) {
   }
 }
 
+// Заголовки безопасности (аудит, карточка #44). CSP ограничена директивами,
+// не ломающими встроенные скрипты Next.js и стили KaTeX: запрет встраивания,
+// плагинов, подмены base и отправки форм на чужие адреса.
+const securityHeaders = [
+  { key: "Content-Security-Policy", value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+];
+// В адресе публичной страницы и приглашения находится секрет (slug, токен):
+// он не должен уходить сторонним сайтам в Referer и попадать в поисковики.
+const capabilityHeaders = [
+  { key: "Referrer-Policy", value: "no-referrer" },
+  { key: "X-Robots-Tag", value: "noindex, nofollow" },
+  { key: "Cache-Control", value: "private, no-store" },
+];
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ["pdfjs-dist", "@napi-rs/canvas"],
   // PDF.js loads its worker by a runtime path; keep it in the processing function.
@@ -39,6 +58,13 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   devIndicators: false,
+  async headers() {
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      { source: "/p/:slug", headers: capabilityHeaders },
+      { source: "/app/invite/:token", headers: capabilityHeaders },
+    ];
+  },
 };
 
 export default nextConfig;

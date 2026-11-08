@@ -2,7 +2,7 @@
 /** Реализация DataApi поверх Supabase (Postgres + RLS). Права проверяет база, клиент только отображает. */
 import type { DataApi } from "./api";
 import { ApiError } from "./api";
-import type { Canvas, CanvasElement, Role, Source, WorkspaceCard } from "@/lib/types";
+import { isNotebookTheme, type Canvas, type CanvasElement, type Role, type Source, type WorkspaceCard } from "@/lib/types";
 import { TRASH_DAYS } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { imageSize, safeName, validateImage } from "./images";
@@ -26,7 +26,7 @@ async function uid() {
 }
 
 const toWs = (r: Row, role: Role, pageCount: number): WorkspaceCard => ({
-  id: r.id as string, ownerId: r.owner_id as string, name: r.name as string,
+  id: r.id as string, ownerId: r.owner_id as string, name: r.name as string, theme: isNotebookTheme(r.theme) ? r.theme : "clean",
   createdAt: r.created_at as string, updatedAt: r.updated_at as string, deletedAt: (r.deleted_at as string) ?? null,
   role, pageCount,
 });
@@ -47,7 +47,8 @@ const toCanvas = (r: Row): Canvas => ({
 });
 const CANVAS_COLS = { name: "name", backgroundType: "background_type", backgroundSpacing: "background_spacing", position: "position" } as const;
 
-const toEl = (r: Row): CanvasElement => ({
+/** Строка public.elements → объект; используется и для Realtime-рассылки триггера */
+export const toEl = (r: Row): CanvasElement => ({
   id: r.id as string, canvasId: r.canvas_id as string, type: r.type as CanvasElement["type"],
   x: r.x as number, y: r.y as number, width: r.width as number, height: r.height as number,
   rotation: r.rotation as number, zIndex: r.z_index as number,
@@ -114,6 +115,10 @@ export const supabaseData: DataApi = {
   },
   async renameWorkspace(id, name) {
     check(await sb().from("workspaces").update({ name: name.trim() }).eq("id", id));
+  },
+  async setWorkspaceTheme(id, theme) {
+    if (!isNotebookTheme(theme)) throw new Error("Неизвестная тема тетради");
+    check(await sb().from("workspaces").update({ theme }).eq("id", id));
   },
   async trashWorkspace(id) {
     // удаление и восстановление — только атомарные RPC (публикации отключаются в той же транзакции)

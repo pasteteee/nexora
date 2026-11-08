@@ -34,6 +34,9 @@ $$;
 insert into auth.users(id, email, email_confirmed_at)
 select pg_temp.id(k), 'nexora-rls-' || pg_temp.id(k)::text || '@example.test', now()
 from unnest(array['owner','editor','viewer','outsider','invitee','pending']) k;
+-- Fixture accounts have proven e-mail ownership (required to accept invitations).
+update public.profiles set email_verified_at = now()
+where id in (select pg_temp.id(k) from unnest(array['owner','editor','viewer','outsider','invitee','pending']) k);
 insert into public.workspaces(id, owner_id, name) values
   (pg_temp.id('wa'), pg_temp.id('owner'), 'RLS workspace A'),
   (pg_temp.id('wb'), pg_temp.id('outsider'), 'RLS workspace B');

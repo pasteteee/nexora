@@ -5,7 +5,7 @@
  */
 import type { AuthApi, DataApi } from "./api";
 import { ApiError } from "./api";
-import type { Canvas, CanvasElement, Profile, Role, Source, Workspace, WorkspaceCard } from "@/lib/types";
+import { isNotebookTheme, type Canvas, type CanvasElement, type Profile, type Role, type Source, type Workspace, type WorkspaceCard } from "@/lib/types";
 import { TRASH_DAYS } from "@/lib/types";
 import { checkUpload, sourceMime } from "./upload-rules";
 import { demoDataUrl, imageSize, validateImage } from "./images";
@@ -20,7 +20,16 @@ type Db = {
   canvases: Canvas[];
   elements: CanvasElement[];
   sources: Source[];
+  /** Спринт 6: приглашения и публикации (в старых демо-базах отсутствуют) */
+  invitations?: LocalInvitation[];
+  publications?: LocalPublication[];
 };
+export type LocalInvitation = {
+  id: string; workspaceId: string; email: string; tokenHash: string; role: "editor" | "viewer";
+  createdAt: string; expiresAt: string; acceptedAt: string | null; revokedAt: string | null;
+};
+export type LocalPublication = { canvasId: string; workspaceId: string; slug: string; isActive: boolean; publishedAt: string };
+export type LocalDb = Db;
 
 const KEY = "nexora:db";
 const SESSION = "nexora:session";
@@ -93,6 +102,8 @@ function purgeExpired(db: Db) {
   db.sources = db.sources.filter((s) => !dead.has(s.workspaceId));
   db.canvases = db.canvases.filter((c) => !deadCanvases.has(c.id));
   db.elements = db.elements.filter((e) => !deadCanvases.has(e.canvasId));
+  if (db.invitations) db.invitations = db.invitations.filter((i) => !dead.has(i.workspaceId));
+  if (db.publications) db.publications = db.publications.filter((p) => !deadCanvases.has(p.canvasId));
 }
 function card(db: Db, ws: Workspace, userId: string): WorkspaceCard {
   return {
@@ -117,6 +128,9 @@ function touchWs(db: Db, wsId: string) {
   const w = db.workspaces.find((x) => x.id === wsId);
   if (w) w.updatedAt = now();
 }
+
+/** Внутренности демо-хранилища для модулей совместной работы (lib/collab/local.ts) */
+export const localStore = { load, save, tx, me, role, requireWs, requireCanvas, hash, now, delay };
 
 /** Источник без содержимого файла — то, что видит интерфейс */
 const pub = (s: Source): Source => { const c = { ...s }; delete c.dataUrl; return c; };
@@ -237,6 +251,10 @@ export const localData: DataApi = {
   },
   async renameWorkspace(id, name) {
     tx((db) => { const { ws } = requireWs(db, id, "owner"); ws.name = name.trim(); ws.updatedAt = now(); });
+  },
+  async setWorkspaceTheme(id, theme) {
+    if (!isNotebookTheme(theme)) throw new Error("Неизвестная тема тетради");
+    tx((db) => { const { ws } = requireWs(db, id, "owner"); ws.theme = theme; ws.updatedAt = now(); });
   },
   async trashWorkspace(id) {
     tx((db) => { const { ws } = requireWs(db, id, "owner"); ws.deletedAt = now(); });

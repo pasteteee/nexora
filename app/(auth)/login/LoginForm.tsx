@@ -9,11 +9,12 @@ import s from "@/components/auth/auth.module.css";
 import { auth, consumeToken, demoMode, ApiError } from "@/lib/data";
 import { useSession } from "@/lib/session";
 import { validateEmail } from "@/lib/validation";
+import { safeNext } from "@/lib/safe-redirect";
 
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/app";
+  const next = safeNext(params.get("next"));
   const refresh = useSession((x) => x.refresh);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,7 +40,7 @@ export function LoginForm() {
     try {
       await auth.signIn(email, password);
       await refresh();
-      router.replace(next.startsWith("/") ? next : "/app");
+      router.replace(next);
     } catch (x) {
       const msg = x instanceof ApiError ? x.message : "Нет соединения. Попробуйте ещё раз.";
       setErr(msg);

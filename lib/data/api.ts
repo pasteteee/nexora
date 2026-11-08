@@ -1,5 +1,5 @@
 import type { ImageContent } from "./images";
-import type { Canvas, CanvasElement, Profile, Source, WorkspaceCard } from "@/lib/types";
+import type { Canvas, CanvasElement, NotebookTheme, Profile, Source, WorkspaceCard } from "@/lib/types";
 
 /** Единый клиентский интерфейс данных. Реализации: local (демо) и supabase. */
 export interface AuthApi {
@@ -19,6 +19,8 @@ export interface DataApi {
   getWorkspace(id: string): Promise<WorkspaceCard | null>;
   createWorkspace(name?: string): Promise<WorkspaceCard>;
   renameWorkspace(id: string, name: string): Promise<void>;
+  /** Тема тетради: меняет владелец */
+  setWorkspaceTheme(id: string, theme: NotebookTheme): Promise<void>;
   trashWorkspace(id: string): Promise<void>;
   restoreWorkspace(id: string): Promise<void>;
 
