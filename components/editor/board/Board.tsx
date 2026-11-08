@@ -17,6 +17,7 @@ import { LayerContext, Menu, Popover, type MenuItem } from "./Popover";
 import { WIDGETS, type WidgetProps } from "./Widgets";
 import s from "./board.module.css";
 import { scrollBehavior } from "@/lib/motion";
+import { useUi } from "@/lib/editor/ui";
 
 type Drag = { id: string | null; type: WidgetType; span: number; h: number; col: number; y: number; left: number; top: number; keys: Record<string, number>; side: Side | null };
 type Placed = { id: string; col: number; span: number; key: number; h: number; top: number };
@@ -69,7 +70,7 @@ function newElement(type: WidgetType, canvasId: string, z: number, layout: Layou
  * reflow around it (packing with gravity). The right edge changes width in 1/24 steps.
  * Menus and editors float above the content, so the text never shifts.
  */
-export function Board({ header, tools, theme = "clean", onOpenMaterials }: { header?: ReactNode; tools?: ReactNode; theme?: NotebookTheme; onOpenMaterials?(): void }) {
+export function Board({ header, dock, theme = "clean", onOpenMaterials }: { header?: ReactNode; dock?: ReactNode; theme?: NotebookTheme; onOpenMaterials?(): void }) {
   const els = useEditor((st) => st.els), canEdit = useEditor((st) => st.canEdit);
   const widgets = useMemo(() => pageWidgets(els), [els]);
   const [layer, setLayer] = useState<HTMLDivElement | null>(null);
@@ -80,7 +81,10 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
   const [drag, setDrag] = useState<Drag | null>(null);
   const [resize, setResize] = useState<{ id: string; span: number; x: number; y: number } | null>(null);
   const [notices, setNotices] = useState<Record<string, string>>({});
-  const [gallery, setGallery] = useState<HTMLElement | null>(null);
+  // The widget gallery opens from the bottom dock, so its anchor lives in the UI store.
+  const gallery = useUi((st) => st.gallery);
+  const setGallery = useCallback((g: HTMLElement | null) => useUi.setState({ gallery: g }), []);
+  useEffect(() => () => useUi.setState({ gallery: null }), []);
   const [dropped, setDropped] = useState<string | null>(null);
   const pending = useRef<FocusRequest | null>(null);
   const [focusTick, setFocusTick] = useState(0);
@@ -447,10 +451,8 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       <div className={s.inner}>
       {header}
       <div className={s.meta}>
-        {canEdit ? <><span>Тяните <kbd>⋮⋮</kbd> слева от виджета в любое место, остальные подвинутся</span>
-          <span><kbd>/</kbd> в тексте открывает блоки и виджеты</span></> : <span>Только просмотр</span>}
-        <span className={s.metaTools}>{tools}
-          {canEdit && <button type="button" className={s.btnPrimary} aria-haspopup="dialog" onClick={(e) => setGallery(e.currentTarget)}>+ Виджет</button>}</span>
+        {canEdit ? <><span><kbd>/</kbd> в тексте — блоки и виджеты</span>
+          <span><kbd>⋮⋮</kbd> слева от виджета — перетащить</span></> : <span>Только просмотр</span>}
       </div>
       <div ref={canvas} className={s.canvas} style={{ height: bottom + 24 }}>
         {drag && (() => { const b = box(drag.col, drag.span); return <div className={s.ph} style={{ transform: `translate(${b.left}px, ${tops.__ph}px)`, width: b.width, height: drag.h }} />; })()}
@@ -474,6 +476,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       </div>
       <span id={hintId} hidden>Стрелки двигают виджет по странице, Enter открывает меню ширины и действий</span>
       <div className={s.sr} role="status" aria-live="polite">{said}</div>
+      {dock}
       {(drag || resize) && <div className={s.shield} data-mode={resize ? "resize" : "drag"} aria-hidden="true" />}
       {resize && <div className={s.tip} style={{ left: resize.x + 14, top: resize.y - 30 }}>{resize.span === COLS ? "на всю ширину" : `${Math.round(resize.span / COLS * 100)} % ширины`}</div>}
       {gallery && <Popover anchor={gallery} onClose={() => setGallery(null)} label="Виджеты" wide>

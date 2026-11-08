@@ -1,12 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { toast } from "@/components/ui";
 import { data } from "@/lib/data";
 import { insertImages, insertSources } from "@/lib/editor/actions";
 import { useEditor } from "@/lib/editor/store";
-import { NOTEBOOK_THEMES, type Canvas, type NotebookTheme } from "@/lib/types";
+import type { Canvas, NotebookTheme } from "@/lib/types";
 import { Board } from "./board/Board";
-import { Popover } from "./board/Popover";
 import { boardFonts } from "./board/fonts";
 import b from "./board/board.module.css";
 import s from "./document.module.css";
@@ -31,28 +30,12 @@ function PageTitle({ page, canEdit, onRenamed }: { page: Canvas; canEdit: boolea
     }} />;
 }
 
-function ThemePicker({ theme, canChange, onChange }: { theme: NotebookTheme; canChange: boolean; onChange(t: NotebookTheme): void }) {
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  return <>
-    <button type="button" className={b.btn} aria-haspopup="dialog" onClick={(e) => setAnchor(e.currentTarget)}>Тема</button>
-    {anchor && <Popover anchor={anchor} onClose={() => setAnchor(null)} label="Тема тетради">
-      <div className={b.themes}>
-        <div className={b.themesH}>{canChange ? "Тема тетради: бумага, цвета и шрифт заголовков" : "Тему тетради меняет владелец"}</div>
-        {NOTEBOOK_THEMES.map(([t, label]) => <button key={t} type="button" className={b.th} aria-pressed={t === theme} disabled={!canChange && t !== theme}
-          onClick={() => canChange && onChange(t)}>
-          <span className={b.pv} data-pv={t}><i /></span><span>{label}</span>
-        </button>)}
-      </div>
-    </Popover>}
-  </>;
-}
-
 /**
  * Page editor: a sheet of movable widgets in the notebook theme. Files dropped on the page become
  * images or materials; they appear at the end of the page.
  */
-export function DocumentEditor({ page, theme, canTheme, onTheme, onRenamed, onOpenMaterials }: {
-  page: Canvas; theme: NotebookTheme; canTheme: boolean; onTheme(t: NotebookTheme): void; onRenamed(): void; onOpenMaterials?(): void;
+export function DocumentEditor({ page, notebook, theme, dock, onRenamed, onOpenMaterials }: {
+  page: Canvas; notebook: string; theme: NotebookTheme; dock?: ReactNode; onRenamed(): void; onOpenMaterials?(): void;
 }) {
   const canEdit = useEditor((st) => st.canEdit);
   return <div className={`${s.editor} ${boardFonts}`} data-board-scroll
@@ -65,7 +48,10 @@ export function DocumentEditor({ page, theme, canTheme, onTheme, onRenamed, onOp
       if (other.length) void insertSources(other, { x: 0, y: 0 });
     }}>
     <Board theme={theme} onOpenMaterials={onOpenMaterials}
-      header={<PageTitle key={`${page.id}:${page.name}`} page={page} canEdit={canEdit} onRenamed={onRenamed} />}
-      tools={<ThemePicker theme={theme} canChange={canTheme} onChange={onTheme} />} />
+      header={<>
+        <div className={b.crumb}><span>{notebook}</span></div>
+        <PageTitle key={`${page.id}:${page.name}`} page={page} canEdit={canEdit} onRenamed={onRenamed} />
+      </>}
+      dock={dock} />
   </div>;
 }

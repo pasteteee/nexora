@@ -9,8 +9,8 @@
   background-image: radial-gradient(var(--grid) 1.2px, transparent 1.2px);
   background-size: 24px 24px;
 }
-.logo { position: absolute; top: 18px; left: 20px; display: flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: -0.02em; }
-.mark { width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), #b07cf0); }
+.logo { position: absolute; top: 18px; left: 20px; display: flex; align-items: center; gap: 8px; font: 700 19px var(--font-head); letter-spacing: -0.02em; }
+.mark { width: 16px; height: 20px; border-radius: 2px 4px 4px 2px; background: var(--accent); box-shadow: inset 3px 0 0 color-mix(in oklab, var(--accent) 60%, #000); }
 
 .card {
   position: relative;
@@ -20,7 +20,8 @@
   display: grid;
   gap: 12px;
   background: var(--surface);
-  border-radius: 22px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
   box-shadow: var(--shadow-2);
   animation: rise var(--t-slow) var(--ease) both;
 }
