@@ -2,8 +2,21 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nexora",
-  description: "Свободный холст для знаний, материалов и идей",
+  title: {
+    default: "Nexora — всё, что вы узнали, в одной тетради",
+    template: "%s",
+  },
+  description:
+    "Тетради-хранилища для знаний: заметки, лекции, формулы, графики, фото и файлы в одном месте. Раскладывайте материалы на листе, находите их поиском и задавайте вопросы ИИ-помощнику.",
+  applicationName: "Nexora",
+  keywords: ["тетрадь онлайн", "хранилище знаний", "база знаний", "заметки", "конспекты", "формулы", "поиск по материалам"],
+  openGraph: {
+    type: "website",
+    locale: "ru_RU",
+    siteName: "Nexora",
+    title: "Nexora — всё, что вы узнали, в одной тетради",
+    description: "Заметки, лекции, формулы, фото и файлы лежат вместе и находятся поиском.",
+  },
 };
 
 export const viewport: Viewport = {
