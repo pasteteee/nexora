@@ -9,7 +9,7 @@
 - Node.js 22.18+ (рекомендуется 24), npm.
 - Доступ к проекту Supabase (Dashboard) и Supabase CLI через `npx --yes supabase@2.121.0`.
 - Проект Vercel, подключённый к репозиторию `pasteteee/nexora`.
-- Ключи: OpenAI (embeddings) и провайдера генерации (xAI, Anthropic или OpenAI).
+- Ключи: Google Gemini (embeddings) и провайдера генерации (xAI, Anthropic или OpenAI).
 - Почта для писем Auth: Gmail с паролем приложения или другой SMTP.
 
 ## 1. Проверить сборку локально

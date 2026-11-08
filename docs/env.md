@@ -31,8 +31,9 @@ Vercel → Settings → Environment Variables. Секреты в репозит�
 | `AI_PROVIDER` | для ИИ | `xai` | только сервер | `xai`, `anthropic` или `openai` |
 | `AI_MODEL` | нет | `grok-4.7` / `claude-sonnet-4-5` / `gpt-4.1-mini` | только сервер | модель выбранного провайдера |
 | `AI_API_KEY` | для ИИ | — | только сервер | ключ провайдера генерации |
-| `EMBEDDINGS_API_KEY` | для поиска | — | только сервер | ключ OpenAI для векторов (отдельно от `AI_API_KEY`) |
-| `EMBEDDINGS_MODEL` | нет | `text-embedding-3-small` | только сервер | должна давать 1536 измерений. Смена — только с переиндексацией ([admin-guide.md](admin-guide.md#смена-модели-embeddings)) |
+| `EMBEDDINGS_PROVIDER` | нет | `gemini` | только сервер | `gemini` или `openai`. Смена — только с переиндексацией |
+| `EMBEDDINGS_API_KEY` | для поиска | — | только сервер | ключ Google Gemini ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)) или OpenAI при `EMBEDDINGS_PROVIDER=openai`; отдельно от `AI_API_KEY` |
+| `EMBEDDINGS_MODEL` | нет | `gemini-embedding-001` (для OpenAI `text-embedding-3-small`) | только сервер | должна давать 1536 измерений. Смена — только с переиндексацией ([admin-guide.md](admin-guide.md#смена-модели-embeddings)) |
 | `MAX_UPLOAD_MB` | нет | `25` | сервер | максимальный размер файла при обработке (`lib/knowledge/process.ts`) |
 | `WORKSPACE_MAX_SOURCES` | нет | `100` | сервер | материалов в одной тетради. **Сейчас код его не читает**: квоту 100 проверяет триггер БД `enforce_source_quota` |
 | `WORKSPACE_MAX_MB` | нет | `500` | сервер | суммарный объём материалов тетради. **Сейчас код его не читает**: квоту 500 МиБ проверяет тот же триггер |

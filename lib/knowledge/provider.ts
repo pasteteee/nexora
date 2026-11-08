@@ -6,12 +6,43 @@ async function checked(response: Response) {
     throw new Error("ИИ временно недоступен. Повторите запрос позже.");
   return response;
 }
-export async function embed(
-  texts: string[],
-  signal?: AbortSignal,
-): Promise<number[][]> {
-  const key = process.env.EMBEDDINGS_API_KEY;
-  if (!key) throw new Error("Не настроен сервис поиска: EMBEDDINGS_API_KEY");
+export const EMBEDDING_DIMENSIONS = 1536;
+/** "document" — фрагменты материалов при индексации, "query" — поисковый запрос. */
+export type EmbedTask = "document" | "query";
+
+function normalize(v: number[]) {
+  const norm = Math.hypot(...v);
+  return norm > 0 ? v.map((n) => n / norm) : v;
+}
+
+async function geminiVectors(texts: string[], key: string, task: EmbedTask, signal?: AbortSignal) {
+  const model = process.env.EMBEDDINGS_MODEL || "gemini-embedding-001";
+  const response = await checked(
+    await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:batchEmbedContents`,
+      {
+        method: "POST",
+        headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requests: texts.map((text) => ({
+            model: `models/${model}`,
+            content: { parts: [{ text }] },
+            taskType: task === "query" ? "RETRIEVAL_QUERY" : "RETRIEVAL_DOCUMENT",
+            outputDimensionality: EMBEDDING_DIMENSIONS,
+          })),
+        }),
+        signal: withTimeout(signal),
+      },
+    ),
+  );
+  const json = await response.json();
+  // Gemini нормирует только полные 3072 измерения: укороченный вектор нормируем сами.
+  return json.embeddings?.map((e: { values?: number[] }) =>
+    Array.isArray(e?.values) ? normalize(e.values) : e?.values,
+  );
+}
+
+async function openaiVectors(texts: string[], key: string, signal?: AbortSignal) {
   const response = await checked(
     await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
@@ -22,20 +53,39 @@ export async function embed(
       body: JSON.stringify({
         model: process.env.EMBEDDINGS_MODEL || "text-embedding-3-small",
         input: texts,
-        dimensions: 1536,
+        dimensions: EMBEDDING_DIMENSIONS,
       }),
       signal: withTimeout(signal),
     }),
   );
   const json = await response.json();
-  const vectors = json.data
+  return json.data
     ?.sort((a: { index: number }, b: { index: number }) => a.index - b.index)
     .map((x: { embedding: number[] }) => x.embedding);
+}
+
+export async function embed(
+  texts: string[],
+  signal?: AbortSignal,
+  task: EmbedTask = "document",
+): Promise<number[][]> {
+  const key = process.env.EMBEDDINGS_API_KEY;
+  if (!key) throw new Error("Не настроен сервис поиска: EMBEDDINGS_API_KEY");
+  const provider = process.env.EMBEDDINGS_PROVIDER || "gemini";
+  if (provider !== "gemini" && provider !== "openai")
+    throw new Error("Неизвестный EMBEDDINGS_PROVIDER");
+  const vectors =
+    provider === "gemini"
+      ? await geminiVectors(texts, key, task, signal)
+      : await openaiVectors(texts, key, signal);
   if (
     !Array.isArray(vectors) ||
     vectors.length !== texts.length ||
     vectors.some(
-      (v) => v.length !== 1536 || v.some((n: number) => !Number.isFinite(n)),
+      (v) =>
+        !Array.isArray(v) ||
+        v.length !== EMBEDDING_DIMENSIONS ||
+        v.some((n: number) => !Number.isFinite(n)),
     )
   )
     throw new Error("Неверный ответ сервиса поиска");
