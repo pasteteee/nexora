@@ -61,6 +61,17 @@ describe("фото в тетрадь: API", () => {
     expect(String(fetchMock.mock.calls[1][0])).not.toBe(String(fetchMock.mock.calls[0][0]));
   });
 
+  it("до миграции запрос записывается как explain, лимит действует", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(gemini({ candidates: [{ content: { parts: [{ text: "{\"blocks\":[]}" }] } }] }));
+    const worker = { from: () => ({ update: () => ({ eq: async () => ({}) }) }) };
+    mocks.reserve.mockReset().mockRejectedValueOnce(new HttpError(503, "Сервис временно недоступен")).mockResolvedValueOnce({ worker, logId: "log" });
+    expect((await POST(request())).status).toBe(200);
+    expect(mocks.reserve).toHaveBeenLastCalledWith(workspaceId, "me", "explain");
+    mocks.reserve.mockReset().mockRejectedValue(new HttpError(429, "Лимит запросов за час исчерпан"));
+    expect((await POST(request())).status).toBe(429);
+    expect(mocks.reserve).toHaveBeenCalledTimes(1);
+  });
+
   it("без фото и с неверным типом отвечает 400 и 415, лимит не тратится", async () => {
     expect((await POST(request(null))).status).toBe(400);
     expect((await POST(request(new Blob(["x"], { type: "application/pdf" })))).status).toBe(415);

@@ -5,6 +5,19 @@ import { PHOTO_MAX_BYTES, PHOTO_TYPES, recognize, VisionError, visionKey, vision
 export const maxDuration = 90;
 
 /**
+ * A photo counts as one AI request. Until the migration that adds the `photo_import` type is applied,
+ * the database rejects that type; the request is then logged as `explain`, so the limit still holds.
+ */
+async function reserve(workspaceId: string, userId: string) {
+  try {
+    return await reserveOperation(workspaceId, userId, "photo_import");
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 503) return reserveOperation(workspaceId, userId, "explain");
+    throw e;
+  }
+}
+
+/**
  * Фото в тетрадь: распознаёт снимок (уже обрезанный и выпрямленный в браузере) и возвращает блоки
  * для страницы. Ничего не сохраняет: блоки вставляет клиент после предпросмотра.
  */
@@ -21,7 +34,7 @@ export async function POST(request: Request) {
     if (image.size > PHOTO_MAX_BYTES) throw new HttpError(413, "Фото больше 4 МиБ. Обрежьте его или уменьшите");
     const { user } = await access(workspaceId, true);
     if (!visionKey()) throw new HttpError(503, "Распознавание фото не настроено: нужен ключ Gemini (EMBEDDINGS_API_KEY или GEMINI_API_KEY)");
-    const { worker, logId } = await reserveOperation(workspaceId, user.id, "photo_import");
+    const { worker, logId } = await reserve(workspaceId, user.id);
     try {
       const base64 = Buffer.from(await image.arrayBuffer()).toString("base64");
       const blocks = await recognize({ mime: image.type, base64 }, hint, request.signal);
