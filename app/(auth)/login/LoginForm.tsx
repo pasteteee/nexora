@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { Button, Field, Spinner } from "@/components/ui";
 import { DemoInbox } from "@/components/auth/DemoInbox";
+import { GoogleButton } from "@/components/auth/GoogleButton";
 import { PasswordField } from "@/components/auth/PasswordField";
 import s from "@/components/auth/auth.module.css";
 import { auth, consumeToken, demoMode, ApiError } from "@/lib/data";
@@ -18,7 +19,7 @@ export function LoginForm() {
   const refresh = useSession((x) => x.refresh);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [err, setErr] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(params.get("oauth") === "failed" ? "Не удалось войти через Google. Попробуйте ещё раз." : null);
   const [info, setInfo] = useState<string | null>(params.get("confirmed") ? "E-mail подтверждён" : null);
   const [busy, setBusy] = useState(false);
   const [unconfirmed, setUnconfirmed] = useState(0);
@@ -66,6 +67,7 @@ export function LoginForm() {
         </div>
       )}
       <DemoInbox email={email} tick={unconfirmed} />
+      <GoogleButton next={next} onError={setErr} />
       <Field type="email" placeholder="E-mail" aria-label="E-mail" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
       <PasswordField value={password} onChange={setPassword} autoComplete="current-password" />
       <Button type="submit" disabled={busy}>{busy ? <Spinner /> : "Войти"}</Button>
