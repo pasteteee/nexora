@@ -1,4 +1,7 @@
 export type Role = "owner" | "editor" | "viewer";
+export type NotebookTheme = "clean" | "grid" | "lined" | "dots" | "kraft" | "night" | "board";
+export const NOTEBOOK_THEMES: [NotebookTheme, string][] = [["clean", "Чистый лист"], ["grid", "Клетка"], ["lined", "Линейка"], ["dots", "Точки"], ["kraft", "Крафт"], ["night", "Ночь"], ["board", "Доска"]];
+export const isNotebookTheme = (v: unknown): v is NotebookTheme => NOTEBOOK_THEMES.some(([t]) => t === v);
 export type BackgroundType = "plain" | "grid" | "dots" | "ruled";
 export type ElementType =
   | "text" | "note" | "image" | "formula" | "shape"
@@ -11,6 +14,8 @@ export interface Workspace {
   id: string;
   ownerId: string;
   name: string;
+  /** Тема страниц тетради; без значения — «Чистый лист» */
+  theme?: NotebookTheme;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
