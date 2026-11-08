@@ -1,21 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { data } from "@/lib/data";
+import { collab } from "@/lib/collab";
 import { parsePublishedCanvas, type PublicPage } from "@/lib/publish/projection";
 import { StatusScreen } from "@/components/ui/StatusScreen";
 import ui from "@/components/ui/ui.module.css";
 import { PublicViewer } from "./PublicViewer";
-
-type DemoPublishing = { getPublishedCanvas?: (slug: string) => Promise<unknown> };
 
 /** Демо-режим без Supabase: публикации живут в localStorage этого браузера. */
 export function DemoPublicPage({ slug }: { slug: string }) {
   const [state, setState] = useState<{ page: PublicPage | null; done: boolean }>({ page: null, done: false });
   useEffect(() => {
     let alive = true;
-    const api = data as unknown as DemoPublishing;
-    (api.getPublishedCanvas ? api.getPublishedCanvas(slug) : Promise.resolve(null))
+    collab.getPublishedCanvas(slug)
       .then((raw) => { if (alive) setState({ page: parsePublishedCanvas(raw), done: true }); })
       .catch(() => { if (alive) setState({ page: null, done: true }); });
     return () => { alive = false; };
