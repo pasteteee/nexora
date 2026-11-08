@@ -2,6 +2,7 @@
 import type { AuthApi } from "./api";
 import { ApiError } from "./api";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { safeNext } from "@/lib/safe-redirect";
 
 const origin = () => (typeof window === "undefined" ? "" : window.location.origin);
 
@@ -31,6 +32,15 @@ export const supabaseAuth: AuthApi = {
   },
   async signIn(email, password) {
     const { error } = await supabaseBrowser().auth.signInWithPassword({ email, password });
+    fail(error);
+  },
+  async signInWithGoogle(next) {
+    const callback = new URL("/auth/callback", origin());
+    callback.searchParams.set("next", safeNext(next));
+    const { error } = await supabaseBrowser().auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: callback.toString(), queryParams: { prompt: "select_account" } },
+    });
     fail(error);
   },
   async signOut() { await supabaseBrowser().auth.signOut(); },
