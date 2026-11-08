@@ -20,4 +20,10 @@ describe("notebook Markdown", () => {
     expect(html).toContain("&lt;script&gt;");
     expect(html).toContain("<pre><code>&lt;img");
   });
+  it("renders $$ math lines from text widgets with KaTeX and keeps bad TeX visible", () => {
+    const html = render("Формула\n$$\\frac{\\sqrt{x^{2} + 1}}{2}$$\n$$\\frac{$$");
+    expect(html).toContain("katex");
+    expect(html).not.toContain("$$\\frac{\\sqrt");
+    expect(html).toContain("<code>\\frac{</code>");
+  });
 });
