@@ -47,7 +47,8 @@ const toCanvas = (r: Row): Canvas => ({
 });
 const CANVAS_COLS = { name: "name", backgroundType: "background_type", backgroundSpacing: "background_spacing", position: "position" } as const;
 
-const toEl = (r: Row): CanvasElement => ({
+/** Строка public.elements → объект; используется и для Realtime-рассылки триггера */
+export const toEl = (r: Row): CanvasElement => ({
   id: r.id as string, canvasId: r.canvas_id as string, type: r.type as CanvasElement["type"],
   x: r.x as number, y: r.y as number, width: r.width as number, height: r.height as number,
   rotation: r.rotation as number, zIndex: r.z_index as number,

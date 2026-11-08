@@ -6,11 +6,15 @@ import { toast } from "@/components/ui";
 import { data } from "@/lib/data";
 import { useEditor } from "@/lib/editor/store";
 import { saveBeforeNavigation } from "@/lib/editor/autosave";
+import { usePageRealtime } from "@/lib/realtime";
+import { CollabBar } from "@/components/collab/CollabBar";
+import { PresenceCursors } from "@/components/collab/PresenceCursors";
 import { SaveIndicator } from "./SaveIndicator";
 import { HistoryButtons } from "./HistoryButtons";
 import { PagesPanel } from "./PagesPanel";
 import { DocumentEditor } from "./DocumentEditor";
 import { KnowledgePanel } from "@/components/knowledge/KnowledgePanel";
+import { ExportMenu } from "@/components/export/ExportMenu";
 import { useUi } from "@/lib/editor/ui";
 import type { Canvas, WorkspaceCard } from "@/lib/types";
 import s from "./workspace.module.css";
@@ -47,6 +51,8 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
   const [loadError, setLoadError] = useState("");
   const [retry, setRetry] = useState(0);
   const [navigating, setNavigating] = useState(false);
+  // совместная работа: объекты других участников, presence и смена роли (вид не меняется)
+  const live = usePageRealtime(ready === canvasId ? canvasId : null, workspaceId);
   useEffect(() => {
     let alive = true;
     async function load() {
@@ -94,7 +100,9 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
   if (missing) notFound();
   const page = pages.find((p) => p.id === canvasId);
   const index = pages.findIndex((p) => p.id === canvasId);
-  const canEdit = !!ws && ws.role !== "viewer";
+  // Роль может смениться во время работы (владелец ограничил доступ) — берём живую
+  const role = live.role ?? ws?.role;
+  const canEdit = !!ws && !!role && role !== "viewer";
   const isReady = ready === canvasId && !!page;
   return <main className={s.workspace}>
     <header className={s.header}>
@@ -104,7 +112,8 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
         <span className={s.notebookName}>{ws?.name ?? "Тетрадь"}</span>
       </div>
       <div className={s.headerActions}>
-        <HistoryButtons /><SaveIndicator /><span className={s.headerDivider} />
+        {ws && page && <><CollabBar workspaceId={workspaceId} workspaceName={ws.name} role={role ?? ws.role} canvasId={canvasId} pageName={page.name} /><span className={s.headerDivider} /></>}
+        <HistoryButtons /><SaveIndicator />{canEdit && isReady && <ExportMenu page={page} />}<span className={s.headerDivider} />
         <button className={s.toggle} aria-label="Панель страниц" aria-pressed={panel} onClick={() => setPanel(!panel)}><PanelLeft size={17} /><span>Страницы</span></button>
         <button className={s.toggle} aria-label="Материалы и ИИ" aria-pressed={knowledge} onClick={() => setKnowledge(!knowledge)}><Sparkles size={17} /><span>Материалы и ИИ</span></button>
       </div>
@@ -113,6 +122,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
       {panel && ws && <div className={s.pagesDock}><PagesPanel workspaceId={workspaceId} current={canvasId} pages={pages} canEdit={canEdit}
         onChange={() => void refreshPages()} go={go} /></div>}
       <section className={s.document} aria-label="Документ">
+        {isReady && <PresenceCursors canvasId={canvasId} />}
         <div className={s.pageBar}>
           <div><FileText size={15} /><span>{page?.name ?? "Загрузка страницы…"}</span></div>
           <nav className={s.pageNavigation} aria-label="Переход между страницами">
