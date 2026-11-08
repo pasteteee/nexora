@@ -11,6 +11,7 @@ import { HistoryButtons } from "./HistoryButtons";
 import { PagesPanel } from "./PagesPanel";
 import { DocumentEditor } from "./DocumentEditor";
 import { KnowledgePanel } from "@/components/knowledge/KnowledgePanel";
+import { ExportMenu } from "@/components/export/ExportMenu";
 import { useUi } from "@/lib/editor/ui";
 import type { Canvas, WorkspaceCard } from "@/lib/types";
 import s from "./workspace.module.css";
@@ -104,7 +105,7 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
         <span className={s.notebookName}>{ws?.name ?? "Тетрадь"}</span>
       </div>
       <div className={s.headerActions}>
-        <HistoryButtons /><SaveIndicator /><span className={s.headerDivider} />
+        <HistoryButtons /><SaveIndicator />{canEdit && isReady && <ExportMenu page={page} />}<span className={s.headerDivider} />
         <button className={s.toggle} aria-label="Панель страниц" aria-pressed={panel} onClick={() => setPanel(!panel)}><PanelLeft size={17} /><span>Страницы</span></button>
         <button className={s.toggle} aria-label="Материалы и ИИ" aria-pressed={knowledge} onClick={() => setKnowledge(!knowledge)}><Sparkles size={17} /><span>Материалы и ИИ</span></button>
       </div>
