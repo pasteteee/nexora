@@ -72,7 +72,8 @@ describe("POST /api/workspaces/:id/invitations", () => {
   it("ошибки базы переводятся в понятные ответы без подробностей", async () => {
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: "23505", message: "dup" } })
       .mockResolvedValueOnce({ data: null, error: { code: "42501", message: "Only the owner can invite members" } })
-      .mockResolvedValueOnce({ data: null, error: { code: "XX000", message: "internal secret detail" } });
+      .mockResolvedValueOnce({ data: null, error: { code: "XX000", message: "internal secret detail" } })
+      .mockResolvedValueOnce({ data: null, error: { code: "54000", message: "invitation_rate_limit" } });
     const call = () => invite(req(`/api/workspaces/${ws}/invitations`, body({ email: "bob@x.ru", role: "editor" })), { params: Promise.resolve({ workspaceId: ws }) });
     const dup = await call();
     expect([dup.status, (await dup.json()).error]).toEqual([409, "Пользователь уже является участником"]);
@@ -80,6 +81,7 @@ describe("POST /api/workspaces/:id/invitations", () => {
     const other = await call();
     expect(other.status).toBe(503);
     expect(JSON.stringify(await other.json())).not.toContain("secret");
+    expect((await call()).status).toBe(429);
   });
 });
 

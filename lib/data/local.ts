@@ -5,7 +5,7 @@
  */
 import type { AuthApi, DataApi } from "./api";
 import { ApiError } from "./api";
-import type { Canvas, CanvasElement, Profile, Role, Source, Workspace, WorkspaceCard } from "@/lib/types";
+import { isNotebookTheme, type Canvas, type CanvasElement, type Profile, type Role, type Source, type Workspace, type WorkspaceCard } from "@/lib/types";
 import { TRASH_DAYS } from "@/lib/types";
 import { checkUpload, sourceMime } from "./upload-rules";
 import { demoDataUrl, imageSize, validateImage } from "./images";
@@ -251,6 +251,10 @@ export const localData: DataApi = {
   },
   async renameWorkspace(id, name) {
     tx((db) => { const { ws } = requireWs(db, id, "owner"); ws.name = name.trim(); ws.updatedAt = now(); });
+  },
+  async setWorkspaceTheme(id, theme) {
+    if (!isNotebookTheme(theme)) throw new Error("Неизвестная тема тетради");
+    tx((db) => { const { ws } = requireWs(db, id, "owner"); ws.theme = theme; ws.updatedAt = now(); });
   },
   async trashWorkspace(id) {
     tx((db) => { const { ws } = requireWs(db, id, "owner"); ws.deletedAt = now(); });

@@ -93,6 +93,19 @@ begin
 end;
 $$;
 
+-- Invitation rate limit (security audit #44)
+do $$
+declare n int;
+begin
+  perform pg_temp.as_user('owner');
+  select count(*) into n from public.workspace_invitations where workspace_id = pg_temp.id('wa') and created_at > now() - interval '1 hour';
+  for i in n + 1 .. 20 loop
+    perform public.create_workspace_invitation(pg_temp.id('wa'), 'bulk' || i || '@example.test', 'viewer');
+  end loop;
+  perform pg_temp.record(extensions.throws_ok($q$select * from public.create_workspace_invitation(pg_temp.id('wa'), 'bulk-over@example.test', 'viewer')$q$, '54000', 'invitation_rate_limit', 'More than 20 invitations per hour are refused'));
+end;
+$$;
+
 -- Roles and removal
 do $$
 begin

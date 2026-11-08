@@ -16,29 +16,8 @@ import { DocumentEditor } from "./DocumentEditor";
 import { KnowledgePanel } from "@/components/knowledge/KnowledgePanel";
 import { ExportMenu } from "@/components/export/ExportMenu";
 import { useUi } from "@/lib/editor/ui";
-import type { Canvas, WorkspaceCard } from "@/lib/types";
+import type { Canvas, NotebookTheme, WorkspaceCard } from "@/lib/types";
 import s from "./workspace.module.css";
-
-function PageTitle({ page, canEdit, onChange }: { page: Canvas; canEdit: boolean; onChange(): void }) {
-  const [name, setName] = useState(page.name);
-  const [saving, setSaving] = useState(false);
-  async function save() {
-    const value = name.trim();
-    if (!value) { setName(page.name); return; }
-    if (value === page.name) return;
-    setSaving(true);
-    try { await data.updateCanvas(page.id, { name: value }); onChange(); }
-    catch { toast("Не удалось сохранить название"); setName(page.name); }
-    finally { setSaving(false); }
-  }
-  return <div className={s.titleArea}>
-    {canEdit ? <input aria-label="Название страницы" className={s.titleInput} value={name} maxLength={100}
-      onChange={(e) => setName(e.target.value)} onBlur={() => void save()}
-      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />
-      : <h1 className={s.titleInput}>{page.name}</h1>}
-    <span className={s.titleHint} aria-live="polite">{saving ? "Сохраняем название…" : "Текст, заметки и материалы в одном документе"}</span>
-  </div>;
-}
 
 export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; canvasId: string }) {
   const router = useRouter();
@@ -97,6 +76,13 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
     } catch (error) { toast((error as Error).message || "Не удалось создать страницу"); }
     finally { setNavigating(false); }
   }
+  async function changeTheme(theme: NotebookTheme) {
+    if (!ws || ws.theme === theme) return;
+    const before = ws.theme;
+    setWs({ ...ws, theme });
+    try { await data.setWorkspaceTheme(ws.id, theme); }
+    catch { toast("Не удалось сменить тему тетради"); setWs((cur) => cur && { ...cur, theme: before }); }
+  }
   if (missing) notFound();
   const page = pages.find((p) => p.id === canvasId);
   const index = pages.findIndex((p) => p.id === canvasId);
@@ -133,8 +119,8 @@ export function EditorShell({ workspaceId, canvasId }: { workspaceId: string; ca
           </nav>
         </div>
         {loadError && !isReady ? <div className={s.loading} role="alert"><p>{loadError}</p><button onClick={() => setRetry((n) => n + 1)}>Повторить</button></div>
-          : isReady ? <><PageTitle key={`${canvasId}:${page.name}`} page={page} canEdit={canEdit} onChange={() => void refreshPages()} />
-            <DocumentEditor key={canvasId} title={page.name} /></> : <div className={s.loading} role="status">Открываем страницу…</div>}
+          : isReady ? <DocumentEditor key={canvasId} page={page} theme={ws?.theme ?? "clean"} canTheme={role === "owner"} onTheme={(t) => void changeTheme(t)}
+            onRenamed={() => void refreshPages()} onOpenMaterials={() => setKnowledge(true)} /> : <div className={s.loading} role="status">Открываем страницу…</div>}
       </section>
       {knowledge && ws && <div className={s.knowledgeDock}><KnowledgePanel key={canvasId} workspaceId={workspaceId} canvasId={canvasId} canEdit={canEdit} docked open={knowledge} onOpenChange={setKnowledge} /></div>}
     </div>

@@ -4,7 +4,7 @@
 
 | Реализация | Файл | Когда используется |
 |---|---|---|
-| Supabase | `lib/data/supabase-auth.ts`, `lib/data/supabase-data.ts` | заданы `NEXT_PUBLIC_SUPABASE_URL` и `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| Supabase | `lib/data/supabase-auth.ts`, `lib/data/supabase-data.ts` | заданы `NEXT_PUBLIC_SUPABASE_URL` и `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |
 | Демо | `lib/data/local.ts` | ключей нет: всё хранится в браузере |
 
 ## Правила, общие для обеих реализаций
@@ -18,6 +18,8 @@
 Текст сообщения готов к показу пользователю.
 
 ## Миграции
+Полный список и порядок применения — [db.md](db.md).
+
 | Файл | Что делает |
 |---|---|
 | `20261017103421_nexora_schema.sql` | схема, RLS, RPC, хранилище (Антон, PR #3) |

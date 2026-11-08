@@ -6,7 +6,7 @@ import { resolve, relative, join } from "node:path";
 for (const file of [".env.production.local", ".env.local", ".env.smtp.local"]) {
   if (existsSync(resolve(file))) process.loadEnvFile(resolve(file));
 }
-const privateNames = ["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ACCESS_TOKEN", "SMTP_PASS", "AI_API_KEY", "OPENAI_API_KEY"];
+const privateNames = ["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ACCESS_TOKEN", "SMTP_PASS", "AI_API_KEY", "OPENAI_API_KEY", "EMBEDDINGS_API_KEY"];
 const privateValues = privateNames.map((name) => [name, process.env[name]])
   .filter(([, value]) => value && value.length >= 8);
 const staticRoot = resolve(".next/static");

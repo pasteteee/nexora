@@ -29,6 +29,7 @@ export async function userClient(request: Request) {
 
 /** Ошибка Postgres → ответ без внутренних подробностей */
 export function pgFailure(error: { code?: string; message: string }): never {
+  if (error.code === "54000") throw new RouteError(429, "Слишком много приглашений за час. Попробуйте позже");
   if (error.code === "23505") throw new RouteError(409, "Пользователь уже является участником");
   if (error.code === "22023" || error.code === "23514") throw new RouteError(400, "Проверьте e-mail и роль");
   if (error.code === "42501") throw new RouteError(403, "Недостаточно прав");
