@@ -5,6 +5,7 @@ import { AutoText } from "./AutoText";
 import { MathLine } from "./MathLine";
 import { MenuList, Popover, menuActions, type MenuItem } from "./Popover";
 import { useBoard } from "./context";
+import { openPhotoImport } from "@/components/editor/photo/PhotoImport";
 import s from "./board.module.css";
 
 let openSeq = 0;
@@ -54,7 +55,12 @@ export function TextWidget({ w }: { w: Widget }) {
     const own = LINE_TYPES.filter((t) => match(t.label, t.k)).map((t): MenuItem => ({ label: t.label, ico: t.ico, hint: t.hint, run: () => { setSlash(null); convert({ ...ln, text: "" }, t.t); } }));
     const wid = CATALOG.filter((c) => c.t !== "text" && c.t !== "formula" && match(c.name, c.about.toLowerCase()))
       .map((c): MenuItem => ({ label: c.name, ico: c.ico, hint: c.about, run: () => { setSlash(null); api.insertAtLine(w, lines.findIndex((l) => l.id === ln.id), c.t); } }));
-    return [...(own.length ? [{ section: "Строка" }, ...own] : []), ...(wid.length ? [{ section: "Виджет на странице" }, ...wid] : [])];
+    const photo: MenuItem[] = match("Фото в тетрадь", "фото камера снимок скан распознать photo") ? [{ label: "Фото в тетрадь", ico: "◉", hint: "Снимок станет текстом, формулой, графиком", run: () => {
+      setSlash(null);
+      api.setLines(w, lines.map((l) => (l.id === ln.id ? { ...l, text: "" } : l)));
+      openPhotoImport({ afterId: w.id });
+    } }] : [];
+    return [...(own.length ? [{ section: "Строка" }, ...own] : []), ...(wid.length || photo.length ? [{ section: "Виджет на странице" }, ...photo, ...wid] : [])];
   };
 
   function onKey(e: React.KeyboardEvent<HTMLTextAreaElement>, ln: Line, i: number) {

@@ -1,5 +1,7 @@
 "use client";
 import { createContext, useContext } from "react";
+import type { PhotoBlock } from "@/lib/photo/blocks";
+import type { PhotoImage } from "@/lib/photo/insert";
 import type { Line, NoteWidget, Widget, WidgetData, WidgetType } from "@/lib/editor/board/model";
 
 export type FocusRequest = { id: string; lid?: string; at?: "start" | "end" | number; open?: boolean };
@@ -21,6 +23,8 @@ export type BoardApi = {
   focus(req: FocusRequest): void;
   /** Widgets in reading order (top to bottom, left to right). */
   ordered(): Widget[];
+  /** Blocks recognised from a photo, as widgets after `afterId` (or at the end), optionally with the photo first. */
+  insertBlocks(blocks: PhotoBlock[], afterId?: string | null, image?: PhotoImage | null): void;
 };
 
 export const BoardContext = createContext<BoardApi | null>(null);
