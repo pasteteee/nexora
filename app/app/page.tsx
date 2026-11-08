@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArchiveRestore, Clock, FileStack, LogOut, MoreHorizontal, Pencil, Plus, Trash2, Undo2 } from "lucide-react";
@@ -112,7 +113,7 @@ export default function Notebooks() {
             <div>
               {trash ? <Trash2 size={40} strokeWidth={1.4} /> : <FileStack size={40} strokeWidth={1.4} />}
               <b>{trash ? "Корзина пуста" : "Здесь будут ваши тетради"}</b>
-              <p>{trash ? `Удалённое хранится ${TRASH_DAYS} дней` : "Тетрадь — это набор страниц-холстов"}</p>
+              <p>{trash ? `Удалённое хранится ${TRASH_DAYS} дней` : "Тетрадь — это набор страниц-конспектов"}</p>
               {!trash && <Button onClick={create}><Plus size={16} /> Создать тетрадь</Button>}
             </div>
           </div>
@@ -151,7 +152,9 @@ export default function Notebooks() {
                 }}
               />
             ) : (
-              <div className={s.name} title={ws.name}>{ws.name}</div>
+              trash ? <div className={s.name} title={ws.name}>{ws.name}</div>
+                // A real link: the tile opens from the keyboard and in a new tab.
+                : <Link className={s.name} title={ws.name} href={`/app/w/${ws.id}`} onClick={(e) => e.stopPropagation()}>{ws.name}</Link>
             )}
             <div className={s.meta}>
               {trash ? (

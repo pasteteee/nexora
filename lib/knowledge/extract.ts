@@ -17,6 +17,11 @@ export async function extract(
   if (mime.startsWith("image/")) return [];
   if (mime === "application/pdf") {
     const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    // In Node.js PDF.js runs a "fake worker" and lazily imports ./pdf.worker.mjs.
+    // That dynamic path is invisible to file tracing, so on Vercel the worker file
+    // was missing and every PDF failed. Loading it explicitly keeps it in the bundle.
+    const scope = globalThis as typeof globalThis & { pdfjsWorker?: unknown };
+    scope.pdfjsWorker ??= await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
     const task = getDocument({ data: bytes, useSystemFonts: true });
     const pdf = await task.promise;
     try {

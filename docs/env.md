@@ -26,6 +26,7 @@ Vercel → Settings → Environment Variables. Секреты в репозит�
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | для стенда | — | клиент + сервер | ключ `sb_publishable_…` (≥16 символов после префикса). Права ограничены RLS. Secret и legacy `service_role` JWT отвергаются |
 | `APP_URL` | да на стенде | `http://localhost:3000` | сервер | origin приложения, из него строится ссылка-приглашение `/app/invite/<token>`. На стенде — HTTPS-адрес развёртывания |
 | `SUPABASE_SECRET_KEY` | для материалов и ИИ | — | только сервер | `sb_secret_…`. Нужен обработчику документов и журналу `ai_requests`. Обходит RLS, читается лениво только после проверки прав |
+| `CRON_SECRET` | для очистки корзины | — | только сервер | случайная строка от 16 символов. Vercel Cron передаёт её в `Authorization: Bearer …` при ежедневном вызове `/api/cron/purge-trash` (расписание в `vercel.json`): тетради и страницы старше 30 дней удаляются вместе с файлами |
 | `SOURCE_SIGNED_URL_TTL_SECONDS` | нет | `60` | сервер | срок подписанной ссылки на оригинал файла, 1–300 с |
 | `AI_PROVIDER` | для ИИ | `xai` | только сервер | `xai`, `anthropic` или `openai` |
 | `AI_MODEL` | нет | `grok-4.7` / `claude-sonnet-4-5` / `gpt-4.1-mini` | только сервер | модель выбранного провайдера |

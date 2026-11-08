@@ -70,27 +70,49 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
 
   // Widget heights drive the packing; a resize observer keeps them current.
   useEffect(() => {
-    const obs = new ResizeObserver((entries) => {
-      setHeights((cur) => {
-        let next = cur;
-        for (const e of entries) {
-          const n = e.target as HTMLElement, id = n.dataset.wid;
-          if (id && cur[id] !== n.offsetHeight) { if (next === cur) next = { ...cur }; next[id] = n.offsetHeight; }
-        }
-        return next;
-      });
-    });
-    ro.current = obs;
     const c = canvas.current;
     const cw = new ResizeObserver(() => setWidth(c?.clientWidth ?? 0));
     if (c) { cw.observe(c); setWidth(c.clientWidth); }
-    return () => { obs.disconnect(); cw.disconnect(); ro.current = null; };
+    // A disconnected observer can observe again, so a StrictMode remount keeps measuring.
+    return () => { cw.disconnect(); ro.current?.disconnect(); };
   }, []);
+  // Ref callbacks run before effects, so widgets present on first render were never
+  // observed: their heights stayed at the 60px default and they overlapped after a reload.
+  // Create the observer on first use instead.
+  const observer = () => ro.current ??= new ResizeObserver((entries) => {
+    setHeights((cur) => {
+      let next = cur;
+      for (const e of entries) {
+        const n = e.target as HTMLElement, id = n.dataset.wid;
+        if (id && cur[id] !== n.offsetHeight) { if (next === cur) next = { ...cur }; next[id] = n.offsetHeight; }
+      }
+      return next;
+    });
+  });
   const measure = useCallback((n: HTMLElement | null) => {
     if (!n) return;
-    ro.current?.observe(n);
-    return () => { ro.current?.unobserve(n); };
+    const obs = observer();
+    obs.observe(n);
+    return () => { obs.unobserve(n); };
   }, []);
+
+  // Undo/redo for widget operations. Listening on window keeps Ctrl+Z working right after
+  // a drag or a widget-menu action, when focus has fallen back to <body>.
+  useEffect(() => {
+    if (!canEdit) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || !(e.ctrlKey || e.metaKey)) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("textarea,input,select,[contenteditable]:not([contenteditable=false]),[role=dialog],[role=menu],[role=listbox]")) return;
+      const key = e.key.toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      e.preventDefault();
+      const editor = useEditor.getState();
+      if (key === "y" || e.shiftKey) editor.redo(); else editor.undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canEdit]);
 
   const narrow = width > 0 && width < NARROW;
   const stepX = (width - GAP * (COLS - 1)) / COLS + GAP, cellW = stepX - GAP;
@@ -363,13 +385,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
   };
 
   return <BoardContext.Provider value={api}><LayerContext.Provider value={layer}>
-    <div ref={setLayer} className={s.bd} data-nb={theme === "clean" ? undefined : theme}
-      onKeyDown={(e) => {
-        const t = e.target as HTMLElement;
-        if (canEdit && !t.matches("textarea,input,[contenteditable]") && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-          e.preventDefault(); if (e.shiftKey) st().redo(); else st().undo();
-        }
-      }}>
+    <div ref={setLayer} className={s.bd} data-nb={theme === "clean" ? undefined : theme}>
       <div className={s.inner}>
       {header}
       <div className={s.meta}>
