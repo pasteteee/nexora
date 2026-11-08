@@ -9,9 +9,10 @@
   --surface-2: #f3f2ef;
   --ink: #1f1e1c;
   --ink-2: #5f5d58;
-  --ink-3: #9a978f;
+  --ink-3: #6f6d67; /* AA 4.5:1 on --bg, --surface and --surface-2 */
   --line: rgba(31, 30, 28, 0.08);
-  --accent: #5b5bd6;
+  --accent: #5858cd;
+  --accent-ink: #ffffff; /* text on --accent */
   --accent-soft: rgba(91, 91, 214, 0.12);
   --danger: #d4483b;
   --ok: #2f9e6a;
@@ -45,9 +46,10 @@
     --surface-2: #2a2a2a;
     --ink: #ecebe8;
     --ink-2: #b5b2ab;
-    --ink-3: #7c7a74;
+    --ink-3: #94928c;
     --line: rgba(255, 255, 255, 0.08);
-    --accent: #8b8bf0;
+    --accent: #9191f1;
+    --accent-ink: #161616;
     --accent-soft: rgba(139, 139, 240, 0.16);
     --grid: rgba(255, 255, 255, 0.06);
     --note-yellow: #4a4223;

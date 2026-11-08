@@ -21,6 +21,7 @@ import type { Source } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import s from "./knowledge.module.css";
 import { SourcePreview } from "./SourcePreview";
+import { scrollBehavior } from "@/lib/motion";
 
 type Match = {
   id: string;
@@ -275,7 +276,7 @@ function KnowledgePanelContent({
       requestAnimationFrame(() =>
         document
           .querySelector(`[data-document-block-id="${element.id}"]`)
-          ?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
+          ?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() }),
       );
     }
   }
@@ -450,7 +451,7 @@ function KnowledgePanelContent({
                       </strong>
                       <span data-status={source.status}>
                         {statuses[source.status]} ·{" "}
-                        {(source.size / 1024 / 1024).toFixed(1)} МиБ
+                        {formatSize(source.size)}
                       </span>
                       {source.errorMessage && <p>{source.errorMessage}</p>}
                       <div className={s.sourceActions}>
@@ -651,4 +652,10 @@ function KnowledgePanelContent({
       )}
     </>
   );
+}
+
+function formatSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} Б`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} КиБ`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} МиБ`;
 }

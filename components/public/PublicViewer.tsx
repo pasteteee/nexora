@@ -29,7 +29,7 @@ function Block({ block }: { block: PublicBlock }) {
   if (block.kind === "shape") return <div className={s.shape} data-shape={block.shape}
     style={{ ...base, textAlign: st.align ?? "center", background: fillOf(st.fill ?? "blue"), borderColor: strokeOf(st.stroke) }}>
     <Markdown text={block.text} /></div>;
-  return <div className={block.note ? s.note : s.text} style={block.note ? { ...base, background: fillOf(st.fill) } : base}><Markdown text={block.text} /></div>;
+  return <div className={block.note ? s.note : s.text} style={block.note ? { ...base, color: undefined, background: fillOf(st.fill ?? st.color) } : base}><Markdown text={block.text} /></div>;
 }
 
 /**

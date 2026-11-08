@@ -1,5 +1,5 @@
 "use client";
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { useEditor } from "@/lib/editor/store";
 import { makeElement, topZ } from "@/lib/editor/factory";
@@ -16,11 +16,14 @@ import { BoardContext, useBoard as useContextApi, type BoardApi, type FocusReque
 import { LayerContext, Menu, Popover, type MenuItem } from "./Popover";
 import { WIDGETS, type WidgetProps } from "./Widgets";
 import s from "./board.module.css";
+import { scrollBehavior } from "@/lib/motion";
 
 type Drag = { id: string | null; type: WidgetType; span: number; h: number; col: number; y: number; left: number; top: number; keys: Record<string, number>; side: Side | null };
 type Placed = { id: string; col: number; span: number; key: number; h: number; top: number };
 /** Handlers a widget frame calls. The object is stable, so frames re-render only when their own widget changes. */
 type FrameControl = {
+  /** id of the hidden hint on how to move a widget from the keyboard */
+  hintId: string;
   measure(n: HTMLElement | null): void | (() => void);
   startDrag(e: React.PointerEvent, w: Widget, open: () => void): void;
   keyMove(e: React.KeyboardEvent, w: Widget): void;
@@ -42,17 +45,23 @@ function scrollParent(n: HTMLElement | null): HTMLElement | null {
   return null;
 }
 
+/**
+ * Placement fields of a widget. `documentOrder` mirrors the packing key: the public page and
+ * exports read it (the published projection exposes it, not `layout`), so they keep page order.
+ */
+const placement = (layout: Layout) => ({ layout, documentOrder: layout.key });
+
 /** Element for a new widget. Placement is written in the same step. */
 function newElement(type: WidgetType, canvasId: string, z: number, layout: Layout, text = ""): CanvasElement {
   const at = { x: 0, y: 0 };
   if (type === "text") {
     const lines: Line[] = [{ id: uid(), t: "p", text }];
-    return makeElement("text", at, canvasId, z, { content: { text, lines, layout } });
+    return makeElement("text", at, canvasId, z, { content: { text, lines, ...placement(layout) } });
   }
-  if (type === "formula") return makeElement("formula", at, canvasId, z, { content: { src: "", latex: "", layout } });
-  if (type === "note") return makeElement("note", at, canvasId, z, { content: { text: "", layout }, style: { color: "yellow", fontSize: 16 } });
+  if (type === "formula") return makeElement("formula", at, canvasId, z, { content: { src: "", latex: "", ...placement(layout) } });
+  if (type === "note") return makeElement("note", at, canvasId, z, { content: { text: "", ...placement(layout) }, style: { color: "yellow", fontSize: 16 } });
   const t = type as NoteWidget, data = defaultData(t);
-  return makeElement("note", at, canvasId, z, { content: { widget: t, data, text: summary(t, data), layout }, style: { color: "gray", fontSize: 16 } });
+  return makeElement("note", at, canvasId, z, { content: { widget: t, data, text: summary(t, data), ...placement(layout) }, style: { color: "gray", fontSize: 16 } });
 }
 
 /**
@@ -76,6 +85,8 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
   const pending = useRef<FocusRequest | null>(null);
   const [focusTick, setFocusTick] = useState(0);
   const placedRef = useRef<Placed[]>([]);
+  const hintId = useId();
+  const [said, setSaid] = useState("");
 
   // Widget heights drive the packing; a resize observer keeps them current. It is created on the first widget,
   // because widgets that are on the page at mount attach before any effect runs.
@@ -93,7 +104,8 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
     const c = canvas.current;
     const cw = new ResizeObserver(() => setWidth(c?.clientWidth ?? 0));
     if (c) { cw.observe(c); setWidth(c.clientWidth); }
-    return () => { cw.disconnect(); ro.current?.disconnect(); ro.current = null; };
+    // A disconnected observer can observe again, so a StrictMode remount keeps measuring.
+    return () => { cw.disconnect(); ro.current?.disconnect(); };
   }, []);
   const measure = useCallback((n: HTMLElement | null) => {
     if (!n) return;
@@ -101,6 +113,24 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
     obs.observe(n);
     return () => { obs.unobserve(n); };
   }, [observer]);
+
+  // Undo/redo for widget operations. Listening on window keeps Ctrl+Z working right after
+  // a drag or a widget-menu action, when focus has fallen back to <body>.
+  useEffect(() => {
+    if (!canEdit) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || !(e.ctrlKey || e.metaKey)) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("textarea,input,select,[contenteditable]:not([contenteditable=false]),[role=dialog],[role=menu],[role=listbox]")) return;
+      const key = e.key.toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      e.preventDefault();
+      const editor = useEditor.getState();
+      if (key === "y" || e.shiftKey) editor.redo(); else editor.undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canEdit]);
 
   const narrow = width > 0 && width < NARROW;
   const stepX = (width - GAP * (COLS - 1)) / COLS + GAP, cellW = stepX - GAP;
@@ -138,14 +168,14 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       try { t.setSelectionRange(at, at); } catch { /* inputs without selection */ }
     } else t.focus({ preventScroll: true });
     const rc = t.getBoundingClientRect();
-    if (rc.top < 80 || rc.bottom > window.innerHeight - 20) t.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (rc.top < 80 || rc.bottom > window.innerHeight - 20) t.scrollIntoView({ block: "center", behavior: scrollBehavior() });
   });
 
   /* ---------- store helpers ---------- */
   const st = () => useEditor.getState();
   const writeLayouts = (patches: Record<string, Layout>, add: CanvasElement[] = []) => {
     const cur = st().els, patch: Record<string, Partial<CanvasElement>> = {};
-    for (const [id, l] of Object.entries(patches)) if (cur[id]) patch[id] = { content: { ...cur[id].content, layout: l } };
+    for (const [id, l] of Object.entries(patches)) if (cur[id]) patch[id] = { content: { ...cur[id].content, ...placement(l) } };
     if (Object.keys(patch).length || add.length) st().batch({ add, patch });
   };
   const notify = useCallback((id: string, message: string) => {
@@ -181,7 +211,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       const w = widgets.find((x) => x.id === id), lay: Record<string, Layout> = {};
       if (w?.layout.beside) release(w, lay);
       const cur = st().els, patch: Record<string, Partial<CanvasElement>> = {};
-      for (const [k, l] of Object.entries(lay)) if (k !== id && cur[k]) patch[k] = { content: { ...cur[k].content, layout: l } };
+      for (const [k, l] of Object.entries(lay)) if (k !== id && cur[k]) patch[k] = { content: { ...cur[k].content, ...placement(l) } };
       st().batch({ remove: [id], patch });
     },
     add(type, after) {
@@ -219,7 +249,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       const cur = state.els[w.id];
       state.batch({
         add,
-        patch: before.length ? { [w.id]: { content: { ...cur.content, layout: w.layout, lines: before, text: linesToMarkdown(before) } } } : {},
+        patch: before.length ? { [w.id]: { content: { ...cur.content, ...placement(w.layout), lines: before, text: linesToMarkdown(before) } } } : {},
         remove: before.length ? [] : [w.id],
       });
       api.focus({ id: el.id, open: type === "formula" });
@@ -352,7 +382,10 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       if (e.key === "ArrowUp") { const prev = others.filter((o) => o.layout.key < l.key).pop(); if (!prev) return; const pp = others.filter((o) => o.layout.key < prev.layout.key).pop(); l.key = pp ? (pp.layout.key + prev.layout.key) / 2 : prev.layout.key - 1; }
       else { const nx = others.find((o) => o.layout.key > l.key); if (!nx) return; const nn = others.find((o) => o.layout.key > nx.layout.key); l.key = nn ? (nx.layout.key + nn.layout.key) / 2 : nx.layout.key + 1; }
     }
+    if (sameLayout(l, w.layout)) return;
     writeLayouts({ ...Object.fromEntries(widgets.filter((x) => !x.el.content.layout).map((x) => [x.id, x.layout])), [w.id]: l });
+    const name = CATALOG_BY_TYPE[w.type]?.name ?? "Виджет";
+    setSaid(`${name}: ${{ ArrowLeft: "левее", ArrowRight: "правее", ArrowUp: "выше", ArrowDown: "ниже" }[e.key]}`);
     requestAnimationFrame(() => canvas.current?.querySelector<HTMLElement>(`[data-wid="${CSS.escape(w.id)}"] [data-handle]`)?.focus());
   }
   function startResize(e: React.PointerEvent, w: Widget) {
@@ -391,16 +424,17 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       { label: "Удалить", ico: "×", danger: true, run: () => api.remove(w.id) },
     ];
   };
-  const frameImpl: Omit<FrameControl, "measure"> = { startDrag: (e, w, open) => startDrag(e, w, w.type, open), keyMove, startResize, menu: menuFor };
+  const frameImpl: Omit<FrameControl, "measure" | "hintId"> = { startDrag: (e, w, open) => startDrag(e, w, w.type, open), keyMove, startResize, menu: menuFor };
   const ctlImpl = useRef(frameImpl);
   useLayoutEffect(() => { ctlImpl.current = frameImpl; });
   const ctl = useMemo<FrameControl>(() => ({
+    hintId,
     measure,
     startDrag: (e, w, open) => ctlImpl.current.startDrag(e, w, open),
     keyMove: (e, w) => ctlImpl.current.keyMove(e, w),
     startResize: (e, w) => ctlImpl.current.startResize(e, w),
     menu: (w) => ctlImpl.current.menu(w),
-  }), [measure]);
+  }), [measure, hintId]);
 
   const galleryItems = CATALOG.map((c) => ({ ...c }));
   const focusedWidget = () => {
@@ -409,13 +443,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
   };
 
   return <BoardContext.Provider value={stableApi}><LayerContext.Provider value={layer}>
-    <div ref={setLayer} className={s.bd} data-nb={theme === "clean" ? undefined : theme} data-resizing={resize ? "" : undefined}
-      onKeyDown={(e) => {
-        const t = e.target as HTMLElement;
-        if (canEdit && !t.matches("textarea,input,[contenteditable]") && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-          e.preventDefault(); if (e.shiftKey) st().redo(); else st().undo();
-        }
-      }}>
+    <div ref={setLayer} className={s.bd} data-nb={theme === "clean" ? undefined : theme} data-resizing={resize ? "" : undefined}>
       <div className={s.inner}>
       {header}
       <div className={s.meta}>
@@ -444,6 +472,8 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       </div>}
       {!canEdit && !widgets.length && <p className={s.empty}>На этой странице пока ничего нет</p>}
       </div>
+      <span id={hintId} hidden>Стрелки двигают виджет по странице, Enter открывает меню ширины и действий</span>
+      <div className={s.sr} role="status" aria-live="polite">{said}</div>
       {(drag || resize) && <div className={s.shield} data-mode={resize ? "resize" : "drag"} aria-hidden="true" />}
       {resize && <div className={s.tip} style={{ left: resize.x + 14, top: resize.y - 30 }}>{resize.span === COLS ? "на всю ширину" : `${Math.round(resize.span / COLS * 100)} % ширины`}</div>}
       {gallery && <Popover anchor={gallery} onClose={() => setGallery(null)} label="Виджеты" wide>
@@ -493,9 +523,12 @@ const Frame = memo(function Frame({ w, ctl, left, top, width, dragging, dropped,
     className={s.w} style={{ transform: `translate(${left}px, ${top}px)`, width }} aria-label={name}>
     {/* Gutter handle on the left: drag it to move the widget, press it for the widget menu. */}
     {api.edit && <button type="button" className={s.handle} data-handle title="Тяните, чтобы переставить. Нажмите, чтобы открыть меню"
-      aria-label={`Переместить или изменить виджет «${name}»`} aria-haspopup="menu" aria-expanded={!!more}
+      aria-label={`Переместить или изменить виджет «${name}»`} aria-haspopup="listbox" aria-expanded={!!more} aria-describedby={ctl.hintId}
       onPointerDown={(e) => { const n = e.currentTarget; ctl.startDrag(e, w, () => setMore(n)); }}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMore(e.currentTarget); } else ctl.keyMove(e, w); }}>
+      onKeyDown={(e) => {
+        if (more) return; // the open menu takes arrows, Enter and Escape
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMore(e.currentTarget); } else ctl.keyMove(e, w);
+      }}>
       <svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="2.5" cy="3" r="1.4" /><circle cx="7.5" cy="3" r="1.4" /><circle cx="2.5" cy="8" r="1.4" /><circle cx="7.5" cy="8" r="1.4" /><circle cx="2.5" cy="13" r="1.4" /><circle cx="7.5" cy="13" r="1.4" /></svg>
     </button>}
     {/* Pill with the widget's own actions; none, no pill. */}

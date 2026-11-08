@@ -26,12 +26,14 @@ Vercel → Settings → Environment Variables. Секреты в репозит�
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | для стенда | — | клиент + сервер | ключ `sb_publishable_…` (≥16 символов после префикса). Права ограничены RLS. Secret и legacy `service_role` JWT отвергаются |
 | `APP_URL` | да на стенде | `http://localhost:3000` | сервер | origin приложения, из него строится ссылка-приглашение `/app/invite/<token>`. На стенде — HTTPS-адрес развёртывания |
 | `SUPABASE_SECRET_KEY` | для материалов и ИИ | — | только сервер | `sb_secret_…`. Нужен обработчику документов и журналу `ai_requests`. Обходит RLS, читается лениво только после проверки прав |
+| `CRON_SECRET` | для очистки корзины | — | только сервер | случайная строка от 16 символов. Vercel Cron передаёт её в `Authorization: Bearer …` при ежедневном вызове `/api/cron/purge-trash` (расписание в `vercel.json`): тетради и страницы старше 30 дней удаляются вместе с файлами |
 | `SOURCE_SIGNED_URL_TTL_SECONDS` | нет | `60` | сервер | срок подписанной ссылки на оригинал файла, 1–300 с |
 | `AI_PROVIDER` | для ИИ | `xai` | только сервер | `xai`, `anthropic` или `openai` |
 | `AI_MODEL` | нет | `grok-4.7` / `claude-sonnet-4-5` / `gpt-4.1-mini` | только сервер | модель выбранного провайдера |
 | `AI_API_KEY` | для ИИ | — | только сервер | ключ провайдера генерации |
-| `EMBEDDINGS_API_KEY` | для поиска | — | только сервер | ключ OpenAI для векторов (отдельно от `AI_API_KEY`) |
-| `EMBEDDINGS_MODEL` | нет | `text-embedding-3-small` | только сервер | должна давать 1536 измерений. Смена — только с переиндексацией ([admin-guide.md](admin-guide.md#смена-модели-embeddings)) |
+| `EMBEDDINGS_PROVIDER` | нет | `gemini` | только сервер | `gemini` или `openai`. Смена — только с переиндексацией |
+| `EMBEDDINGS_API_KEY` | для поиска | — | только сервер | ключ Google Gemini ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)) или OpenAI при `EMBEDDINGS_PROVIDER=openai`; отдельно от `AI_API_KEY` |
+| `EMBEDDINGS_MODEL` | нет | `gemini-embedding-001` (для OpenAI `text-embedding-3-small`) | только сервер | должна давать 1536 измерений. Смена — только с переиндексацией ([admin-guide.md](admin-guide.md#смена-модели-embeddings)) |
 | `MAX_UPLOAD_MB` | нет | `25` | сервер | максимальный размер файла при обработке (`lib/knowledge/process.ts`) |
 | `WORKSPACE_MAX_SOURCES` | нет | `100` | сервер | материалов в одной тетради. **Сейчас код его не читает**: квоту 100 проверяет триггер БД `enforce_source_quota` |
 | `WORKSPACE_MAX_MB` | нет | `500` | сервер | суммарный объём материалов тетради. **Сейчас код его не читает**: квоту 500 МиБ проверяет тот же триггер |

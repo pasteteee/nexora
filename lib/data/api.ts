@@ -6,6 +6,8 @@ export interface AuthApi {
   current(): Promise<Profile | null>;
   signUp(email: string, password: string, displayName: string): Promise<void>;
   signIn(email: string, password: string): Promise<void>;
+  /** Вход через Google: уводит браузер на страницу Google, возврат в /auth/callback */
+  signInWithGoogle(next: string): Promise<void>;
   signOut(): Promise<void>;
   resendConfirmation(email: string): Promise<void>;
   requestPasswordReset(email: string): Promise<void>;
