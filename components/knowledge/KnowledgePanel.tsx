@@ -451,7 +451,7 @@ function KnowledgePanelContent({
                       </strong>
                       <span data-status={source.status}>
                         {statuses[source.status]} ·{" "}
-                        {(source.size / 1024 / 1024).toFixed(1)} МиБ
+                        {formatSize(source.size)}
                       </span>
                       {source.errorMessage && <p>{source.errorMessage}</p>}
                       <div className={s.sourceActions}>
@@ -652,4 +652,10 @@ function KnowledgePanelContent({
       )}
     </>
   );
+}
+
+function formatSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} Б`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} КиБ`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} МиБ`;
 }

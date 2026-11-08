@@ -45,17 +45,23 @@ function scrollParent(n: HTMLElement | null): HTMLElement | null {
   return null;
 }
 
+/**
+ * Placement fields of a widget. `documentOrder` mirrors the packing key: the public page and
+ * exports read it (the published projection exposes it, not `layout`), so they keep page order.
+ */
+const placement = (layout: Layout) => ({ layout, documentOrder: layout.key });
+
 /** Element for a new widget. Placement is written in the same step. */
 function newElement(type: WidgetType, canvasId: string, z: number, layout: Layout, text = ""): CanvasElement {
   const at = { x: 0, y: 0 };
   if (type === "text") {
     const lines: Line[] = [{ id: uid(), t: "p", text }];
-    return makeElement("text", at, canvasId, z, { content: { text, lines, layout } });
+    return makeElement("text", at, canvasId, z, { content: { text, lines, ...placement(layout) } });
   }
-  if (type === "formula") return makeElement("formula", at, canvasId, z, { content: { src: "", latex: "", layout } });
-  if (type === "note") return makeElement("note", at, canvasId, z, { content: { text: "", layout }, style: { color: "yellow", fontSize: 16 } });
+  if (type === "formula") return makeElement("formula", at, canvasId, z, { content: { src: "", latex: "", ...placement(layout) } });
+  if (type === "note") return makeElement("note", at, canvasId, z, { content: { text: "", ...placement(layout) }, style: { color: "yellow", fontSize: 16 } });
   const t = type as NoteWidget, data = defaultData(t);
-  return makeElement("note", at, canvasId, z, { content: { widget: t, data, text: summary(t, data), layout }, style: { color: "gray", fontSize: 16 } });
+  return makeElement("note", at, canvasId, z, { content: { widget: t, data, text: summary(t, data), ...placement(layout) }, style: { color: "gray", fontSize: 16 } });
 }
 
 /**
@@ -98,7 +104,8 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
     const c = canvas.current;
     const cw = new ResizeObserver(() => setWidth(c?.clientWidth ?? 0));
     if (c) { cw.observe(c); setWidth(c.clientWidth); }
-    return () => { cw.disconnect(); ro.current?.disconnect(); ro.current = null; };
+    // A disconnected observer can observe again, so a StrictMode remount keeps measuring.
+    return () => { cw.disconnect(); ro.current?.disconnect(); };
   }, []);
   const measure = useCallback((n: HTMLElement | null) => {
     if (!n) return;
@@ -106,6 +113,24 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
     obs.observe(n);
     return () => { obs.unobserve(n); };
   }, [observer]);
+
+  // Undo/redo for widget operations. Listening on window keeps Ctrl+Z working right after
+  // a drag or a widget-menu action, when focus has fallen back to <body>.
+  useEffect(() => {
+    if (!canEdit) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || !(e.ctrlKey || e.metaKey)) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("textarea,input,select,[contenteditable]:not([contenteditable=false]),[role=dialog],[role=menu],[role=listbox]")) return;
+      const key = e.key.toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      e.preventDefault();
+      const editor = useEditor.getState();
+      if (key === "y" || e.shiftKey) editor.redo(); else editor.undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canEdit]);
 
   const narrow = width > 0 && width < NARROW;
   const stepX = (width - GAP * (COLS - 1)) / COLS + GAP, cellW = stepX - GAP;
@@ -150,7 +175,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
   const st = () => useEditor.getState();
   const writeLayouts = (patches: Record<string, Layout>, add: CanvasElement[] = []) => {
     const cur = st().els, patch: Record<string, Partial<CanvasElement>> = {};
-    for (const [id, l] of Object.entries(patches)) if (cur[id]) patch[id] = { content: { ...cur[id].content, layout: l } };
+    for (const [id, l] of Object.entries(patches)) if (cur[id]) patch[id] = { content: { ...cur[id].content, ...placement(l) } };
     if (Object.keys(patch).length || add.length) st().batch({ add, patch });
   };
   const notify = useCallback((id: string, message: string) => {
@@ -186,7 +211,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       const w = widgets.find((x) => x.id === id), lay: Record<string, Layout> = {};
       if (w?.layout.beside) release(w, lay);
       const cur = st().els, patch: Record<string, Partial<CanvasElement>> = {};
-      for (const [k, l] of Object.entries(lay)) if (k !== id && cur[k]) patch[k] = { content: { ...cur[k].content, layout: l } };
+      for (const [k, l] of Object.entries(lay)) if (k !== id && cur[k]) patch[k] = { content: { ...cur[k].content, ...placement(l) } };
       st().batch({ remove: [id], patch });
     },
     add(type, after) {
@@ -224,7 +249,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       const cur = state.els[w.id];
       state.batch({
         add,
-        patch: before.length ? { [w.id]: { content: { ...cur.content, layout: w.layout, lines: before, text: linesToMarkdown(before) } } } : {},
+        patch: before.length ? { [w.id]: { content: { ...cur.content, ...placement(w.layout), lines: before, text: linesToMarkdown(before) } } } : {},
         remove: before.length ? [] : [w.id],
       });
       api.focus({ id: el.id, open: type === "formula" });
@@ -418,13 +443,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
   };
 
   return <BoardContext.Provider value={stableApi}><LayerContext.Provider value={layer}>
-    <div ref={setLayer} className={s.bd} data-nb={theme === "clean" ? undefined : theme} data-resizing={resize ? "" : undefined}
-      onKeyDown={(e) => {
-        const t = e.target as HTMLElement;
-        if (canEdit && !t.matches("textarea,input,[contenteditable]") && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-          e.preventDefault(); if (e.shiftKey) st().redo(); else st().undo();
-        }
-      }}>
+    <div ref={setLayer} className={s.bd} data-nb={theme === "clean" ? undefined : theme} data-resizing={resize ? "" : undefined}>
       <div className={s.inner}>
       {header}
       <div className={s.meta}>

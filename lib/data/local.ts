@@ -162,6 +162,9 @@ export const localAuth: AuthApi & { demoInbox(email: string): { kind: string; ur
     if (!u || u.passHash !== h) throw new ApiError("Неверный e-mail или пароль", "auth");
     localStorage.setItem(SESSION, u.id);
   },
+  async signInWithGoogle() {
+    throw new ApiError("Вход через Google недоступен в демо-режиме", "invalid");
+  },
   async signOut() { localStorage.removeItem(SESSION); },
   async resendConfirmation(email) {
     await delay();

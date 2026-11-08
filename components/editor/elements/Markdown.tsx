@@ -1,4 +1,14 @@
 import { Fragment, type ReactNode } from "react";
+import katex from "katex";
+import "katex/dist/katex.min.css";
+
+/** `$$…$$` lines are formulas (text widgets store math lines this way). Invalid TeX stays visible as source. */
+function MathLine({ tex }: { tex: string }) {
+  let html: string | null = null;
+  try { html = katex.renderToString(tex, { throwOnError: true, displayMode: true, trust: false, maxExpand: 500 }); }
+  catch { html = null; }
+  return html === null ? <code>{tex}</code> : <div className="nx-math" dangerouslySetInnerHTML={{ __html: html }} />;
+}
 
 /** A deliberately small, HTML-free Markdown reader. Stored content stays editable source. */
 function inline(text: string): ReactNode[] {
@@ -22,6 +32,8 @@ export function Markdown({ text }: { text: string }) {
       blocks.push(<pre key={i}><code>{code.join("\n")}</code></pre>);
       continue;
     }
+    const math = /^\$\$(.+)\$\$\s*$/.exec(line);
+    if (math) { blocks.push(<MathLine key={i} tex={math[1].trim()} />); continue; }
     const heading = /^(#{1,3})\s+(.+)$/.exec(line);
     if (heading) {
       const Tag = ("h" + heading[1].length) as "h1" | "h2" | "h3";
