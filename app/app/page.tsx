@@ -113,7 +113,7 @@ export default function Notebooks() {
             <div>
               {trash ? <Trash2 size={40} strokeWidth={1.4} /> : <FileStack size={40} strokeWidth={1.4} />}
               <b>{trash ? "Корзина пуста" : "Здесь будут ваши тетради"}</b>
-              <p>{trash ? `Удалённое хранится ${TRASH_DAYS} дней` : "Тетрадь — это набор страниц-конспектов"}</p>
+              <p>{trash ? `Удалённое хранится ${TRASH_DAYS} дней` : "Тетрадь хранит всё по одной теме: заметки, формулы, фото и файлы"}</p>
               {!trash && <Button onClick={create}><Plus size={16} /> Создать тетрадь</Button>}
             </div>
           </div>

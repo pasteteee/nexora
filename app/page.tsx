@@ -48,8 +48,8 @@ export default function Landing() {
 
         <header className={s.hero}>
           <div>
-            <h1>Тетрадь, где каждый блок можно передвинуть</h1>
-            <p className={s.lead}>Конспект, формулы, канбан и график на одном листе. Возьмите любой виджет и положите туда, где удобно.</p>
+            <h1>Всё, что вы узнали, в одной тетради</h1>
+            <p className={s.lead}>Лекции, статьи, формулы, графики, фото и файлы хранятся вместе, а не в разных папках. Раскладывайте их на листе как удобно и находите поиском, когда понадобятся.</p>
             <div className={s.ctaRow}>
               <Link className={`${s.btn} ${s.primary}`} href="/register">Создать тетрадь</Link>
               <Link className={`${s.btn} ${s.quiet}`} href="/login">У меня есть аккаунт</Link>
@@ -83,14 +83,14 @@ export default function Landing() {
 
         <section className={s.final} aria-labelledby="fin-h">
           <div className={s.wrap}>
-            <h2 id="fin-h">Начните конспект следующей лекции здесь</h2>
+            <h2 id="fin-h">Соберите здесь всё, что хотите помнить</h2>
             <Link className={s.btn} href="/register">Создать тетрадь</Link>
           </div>
         </section>
       </main>
 
       <footer className={s.footer}>
-        <div className={s.wrap}><span>Nexora</span><span>Тетради для учёбы с формулами, схемами и планом</span></div>
+        <div className={s.wrap}><span>Nexora</span><span>Тетради для знаний: заметки, материалы, формулы и поиск</span></div>
       </footer>
     </div>
   );
