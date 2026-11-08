@@ -2,8 +2,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArchiveRestore, Clock, FileStack, LogOut, MoreHorizontal, Pencil, Plus, Trash2, Undo2 } from "lucide-react";
-import { Button, Group, IconButton, Menu, Sep, Skeleton, toast, type MenuItem } from "@/components/ui";
+import { ArchiveRestore, BookOpen, Clock, LogOut, MoreHorizontal, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Button, Menu, Skeleton, toast, type MenuItem } from "@/components/ui";
+import { Dock, DockButton, DockGroup, DockSep } from "@/components/ui/Dock";
 import { Cover } from "@/components/notebooks/Cover";
 import s from "@/components/notebooks/notebooks.module.css";
 import { data, ApiError } from "@/lib/data";
@@ -13,6 +14,8 @@ import { TRASH_DAYS, type WorkspaceCard } from "@/lib/types";
 import { validateTitle } from "@/lib/validation";
 
 const ROLE = { owner: null, editor: "редактор", viewer: "читатель" } as const;
+const plural = (n: number, one: string, few: string, many: string) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many}`;
+const notebooks = (n: number) => plural(n, "тетрадь", "тетради", "тетрадей");
 const pages = (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "страница" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "страницы" : "страниц"}`;
 
 export default function Notebooks() {
@@ -22,6 +25,7 @@ export default function Notebooks() {
   const [list, setList] = useState<WorkspaceCard[] | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   const [tick, setTick] = useState(0);
   const load = () => setTick((t) => t + 1);
@@ -79,97 +83,82 @@ export default function Notebooks() {
   }
 
   const initials = (profile?.displayName || profile?.email || "?").slice(0, 1).toUpperCase();
+  const q = query.trim().toLowerCase();
+  const shown = list && q ? list.filter((ws) => ws.name.toLowerCase().includes(q)) : list;
+  const switchTo = (t: boolean) => { if (t === trash) return; setList(null); setQuery(""); setTrash(t); };
 
   return (
     <main className={s.page}>
-      <header className={s.bar}>
-        <Group><span className={s.brand}><span className={s.mark} />Nexora</span></Group>
-        <Group>
-          <IconButton tip="Новая тетрадь" onClick={create} disabled={trash}><Plus size={18} /></IconButton>
-          <IconButton tip={trash ? "Мои тетради" : "Корзина"} active={trash} onClick={() => { setList(null); setTrash(!trash); }}>
-            {trash ? <Undo2 size={18} /> : <Trash2 size={18} />}
-          </IconButton>
-          <Sep />
-          <IconButton
-            tip={profile?.displayName ?? "Профиль"}
-            onClick={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              setMenu({ x: r.right - 200, y: r.bottom + 8, items: [{ label: "Мой профиль", icon: <Pencil size={16} />, onSelect: () => router.push("/app/profile") }, { label: "Выйти", icon: <LogOut size={16} />, onSelect: async () => { await signOut(); router.replace("/login"); } }] });
-            }}
-          >
-            <span className={s.avatar}>{initials}</span>
-          </IconButton>
-        </Group>
-      </header>
+      <div className={s.inner}>
+        <header className={s.top}>
+          <Link href="/" className={s.brand}><span className={s.mark} />Nexora</Link>
+        </header>
 
-      <section className={s.grid}>
-        {list === null &&
-          Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className={s.tile}><Skeleton h={22} w="60%" /><div style={{ height: 8 }} /><Skeleton h={14} w="40%" /></div>
-          ))}
-
-        {list?.length === 0 && (
-          <div className={s.empty}>
-            <div>
-              {trash ? <Trash2 size={40} strokeWidth={1.4} /> : <FileStack size={40} strokeWidth={1.4} />}
-              <b>{trash ? "Корзина пуста" : "Здесь будут ваши тетради"}</b>
-              <p>{trash ? `Удалённое хранится ${TRASH_DAYS} дней` : "Тетрадь — это набор страниц-конспектов"}</p>
-              {!trash && <Button onClick={create}><Plus size={16} /> Создать тетрадь</Button>}
-            </div>
+        <div className={s.head}>
+          <div>
+            <h1>{trash ? "Корзина" : "Мои тетради"}</h1>
+            <p>{trash ? `Удалённые тетради хранятся ${TRASH_DAYS} дней, потом исчезают совсем.`
+              : list?.length ? `${notebooks(list.length)}. Заметки, формулы, фото и файлы, разложенные по темам.`
+              : "Заметки, формулы, фото и файлы, разложенные по темам."}</p>
           </div>
-        )}
+          {list && list.length > 3 && <label className={s.search}>
+            <Search size={16} />
+            <input type="search" placeholder="Найти тетрадь" aria-label="Найти тетрадь" value={query} onChange={(e) => setQuery(e.target.value)} />
+          </label>}
+        </div>
 
-        {list && list.length > 0 && !trash && (
-          <button className={`${s.tile} ${s.new}`} onClick={create} style={{ border: 0, font: "inherit" }}>
-            <span className={s.plus}><Plus size={28} /></span>
-            Новая тетрадь
-          </button>
-        )}
+        {list?.length === 0 ? (
+          <div className={s.empty}>
+            {trash ? <><b>Корзина пуста</b><p>Сюда попадают удалённые тетради</p></>
+              : <><div className={s.stack} aria-hidden><i /><i /><i /></div>
+                <b>Здесь будут ваши тетради</b>
+                <p>Тетрадь хранит всё по одной теме: заметки, формулы, фото и файлы</p>
+                <Button onClick={create}><Plus size={16} /> Новая тетрадь</Button></>}
+          </div>
+        ) : (
+          <section className={s.grid} aria-label={trash ? "Тетради в корзине" : "Тетради"}>
+            {list === null && Array.from({ length: 6 }, (_, i) => <div key={i} className={s.item}><div className={s.skel}><Skeleton h="100%" r={8} /></div><Skeleton h={14} w="50%" /></div>)}
 
-        {list?.map((ws, i) => (
-          <article
-            key={ws.id}
-            className={s.tile}
-            style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
-            onClick={() => !trash && renaming !== ws.id && router.push(`/app/w/${ws.id}`)}
-            onContextMenu={(e) => openMenu(e, ws)}
-          >
-            <Cover id={ws.id} />
-            <div className={s.more} onClick={(e) => e.stopPropagation()}>
-              <IconButton tip="Ещё" onClick={(e) => openMenu(e, ws)}><MoreHorizontal size={18} /></IconButton>
-            </div>
-            {renaming === ws.id ? (
-              <input
-                className={s.rename}
-                defaultValue={ws.name}
-                maxLength={100}
-                autoFocus
-                onClick={(e) => e.stopPropagation()}
-                onBlur={(e) => rename(ws, e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur();
-                  if (e.key === "Escape") setRenaming(null);
-                }}
-              />
-            ) : (
-              trash ? <div className={s.name} title={ws.name}>{ws.name}</div>
-                // A real link: the tile opens from the keyboard and in a new tab.
-                : <Link className={s.name} title={ws.name} href={`/app/w/${ws.id}`} onClick={(e) => e.stopPropagation()}>{ws.name}</Link>
-            )}
-            <div className={s.meta}>
-              {trash ? (
-                <span className={s.trashNote}>удалится через {daysLeft(ws.deletedAt!, TRASH_DAYS)} дн.</span>
-              ) : (
-                <>
-                  <span><Clock size={12} /> {ago(ws.updatedAt)}</span>
-                  <span>{pages(ws.pageCount)}</span>
-                  {ROLE[ws.role] && <span className={s.role}>{ROLE[ws.role]}</span>}
-                </>
-              )}
-            </div>
-          </article>
-        ))}
-      </section>
+            {shown?.length === 0 && <p className={s.noMatch}>Нет тетрадей с «{query.trim()}» в названии</p>}
+
+            {shown?.map((ws, i) => {
+              const plate = renaming === ws.id
+                ? <input className={s.rename} defaultValue={ws.name} maxLength={100} autoFocus aria-label="Название тетради"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onBlur={(e) => rename(ws, e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setRenaming(null); }} />
+                : <span className={s.name} title={ws.name}>{ws.name}</span>;
+              const cover = <Cover id={ws.id} muted={trash}>{plate}<span className={s.pages}>{pages(ws.pageCount)}</span></Cover>;
+              return <article key={ws.id} className={s.item} style={{ animationDelay: `${Math.min(i, 10) * 35}ms` }} onContextMenu={(e) => openMenu(e, ws)}>
+                {trash || renaming === ws.id ? <div>{cover}</div>
+                  // A real link: the notebook opens from the keyboard and in a new tab.
+                  : <Link href={`/app/w/${ws.id}`} aria-label={`${ws.name}, ${pages(ws.pageCount)}`}>{cover}</Link>}
+                <div className={s.meta}>
+                  {trash ? <span className={s.trashNote}>удалится через {daysLeft(ws.deletedAt!, TRASH_DAYS)} дн.</span>
+                    : <><span><Clock size={13} /> {ago(ws.updatedAt)}</span>{ROLE[ws.role] && <span className={s.role}>{ROLE[ws.role]}</span>}</>}
+                </div>
+                {(trash || ws.role === "owner") && <div className={s.more}>
+                  <button type="button" aria-label={`Действия: ${ws.name}`} onClick={(e) => openMenu(e, ws)}><MoreHorizontal size={18} /></button>
+                </div>}
+              </article>;
+            })}
+          </section>
+        )}
+      </div>
+
+      <Dock label="Панель тетрадей">
+        {!trash && <><DockButton primary icon={<Plus size={18} />} tip="Новая тетрадь" label="Новая тетрадь" onClick={create} /><DockSep /></>}
+        <DockGroup label="Разделы">
+          <DockButton icon={<BookOpen size={18} />} tip="Мои тетради" label="Тетради" active={!trash} onClick={() => switchTo(false)} />
+          <DockButton icon={<Trash2 size={18} />} tip="Корзина" label="Корзина" active={trash} onClick={() => switchTo(true)} />
+        </DockGroup>
+        <DockSep />
+        <DockButton icon={<span className={s.avatar}>{initials}</span>} tip={profile?.displayName ?? "Профиль"}
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setMenu({ x: r.right - 200, y: r.top - 92, items: [{ label: "Мой профиль", icon: <Pencil size={16} />, onSelect: () => router.push("/app/profile") }, { label: "Выйти", icon: <LogOut size={16} />, onSelect: async () => { await signOut(); router.replace("/login"); } }] });
+          }} />
+      </Dock>
       {menu && <Menu {...menu} onClose={() => setMenu(null)} />}
     </main>
   );

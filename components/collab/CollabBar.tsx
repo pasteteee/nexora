@@ -39,7 +39,7 @@ export function CollabBar({ workspaceId, workspaceName, role: initialRole, canva
     {status === "offline" && <span className={`${s.badge} ${s.offline}`} role="status" title="Изменения других участников появятся после восстановления связи">
       <WifiOff size={13} />Нет связи</span>}
     {role === "viewer" && <span className={s.badge} title="Наблюдатель может читать, но не изменять страницы"><Eye size={13} />Только просмотр</span>}
-    <button className={s.share} onClick={() => setOpen(true)} aria-haspopup="dialog"><Share2 size={15} /><span>Поделиться</span></button>
+    <button className={s.share} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label="Поделиться"><Share2 size={18} /><span data-dock-label>Поделиться</span></button>
     <ShareDialog open={open} onClose={() => setOpen(false)} workspaceId={workspaceId} workspaceName={workspaceName}
       role={role} canvasId={canvasId} pageName={pageName} onLeft={() => router.replace("/app")} />
     <Dialog open={accessLost} title="Доступ к тетради закрыт" onClose={() => router.replace("/app")}

@@ -58,15 +58,15 @@
   height: 40px;
   padding: 0 18px;
   border: 0;
-  border-radius: 999px;
-  font-weight: 550;
+  border-radius: var(--radius-s);
+  font-weight: 600;
   cursor: pointer;
   transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), opacity var(--t-fast);
 }
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.5; pointer-events: none; }
-.primary { background: var(--ink); color: var(--bg); }
-.primary:hover { opacity: 0.88; }
+.primary { background: var(--accent); color: var(--accent-ink); }
+.primary:hover { background: color-mix(in oklab, var(--accent) 86%, var(--ink)); }
 .ghost { background: var(--surface-2); color: var(--ink); }
 .ghost:hover { background: var(--line); }
 .dangerBtn { background: var(--danger); color: #fff; }
@@ -103,11 +103,12 @@
   width: min(420px, calc(100vw - 32px));
   padding: 22px;
   background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: var(--radius-l);
   box-shadow: var(--shadow-2);
   animation: pop var(--t-mid) var(--ease) both;
 }
-.dialogTitle { margin: 0 0 6px; font-size: 17px; font-weight: 650; }
+.dialogTitle { margin: 0 0 6px; font: 600 19px/1.25 var(--font-head); letter-spacing: -0.01em; }
 .dialogBody { color: var(--ink-2); margin-bottom: 18px; }
 .dialogActions { display: flex; gap: 8px; justify-content: flex-end; }
 
@@ -117,6 +118,7 @@
   min-width: 200px;
   padding: 6px;
   background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: var(--radius-m);
   box-shadow: var(--shadow-2);
   z-index: 200;
@@ -147,7 +149,7 @@
 /* ---------- тосты ---------- */
 .toasts {
   position: fixed;
-  bottom: 20px;
+  bottom: calc(20px + var(--dock-space, 0px));
   left: 50%;
   transform: translateX(-50%);
   display: grid;
@@ -161,12 +163,12 @@
   padding: 10px 14px 10px 16px;
   background: var(--ink);
   color: var(--bg);
-  border-radius: 999px;
+  border-radius: var(--radius-m);
   box-shadow: var(--shadow-2);
   font-size: 14px;
   animation: rise var(--t-mid) var(--ease) both;
 }
-.toast button { border: 0; background: none; color: var(--accent); font-weight: 600; cursor: pointer; }
+.toast button { border: 0; background: none; color: var(--accent-soft); text-decoration: underline; text-underline-offset: 3px; font-weight: 600; cursor: pointer; }
 
 /* ---------- загрузка ---------- */
 .skeleton {
