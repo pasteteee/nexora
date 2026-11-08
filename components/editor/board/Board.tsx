@@ -549,9 +549,15 @@ const Frame = memo(function Frame({ w, ctl, left, top, width, dragging, dropped,
   const color = w.type === "note" ? String(w.el.style.color ?? "yellow") : undefined;
   const { measure } = ctl;
   const ref = useCallback((n: HTMLElement | null) => { setFrame(n); return measure(n) ?? undefined; }, [measure]);
+  // The widget the user works in is the "selection" the assistant's selection actions (explain, summarize, rewrite) use.
+  const pick = useCallback(() => {
+    const st = useEditor.getState();
+    if (st.selected.length !== 1 || st.selected[0] !== w.id) st.select([w.id]);
+  }, [w.id]);
   return <section ref={ref} data-wid={w.id} data-type={w.type} data-tone={tone} data-color={color} data-card={def.card || undefined}
     data-dragging={dragging || undefined} data-dropped={dropped || undefined} data-edit={api.edit || undefined}
-    className={s.w} style={{ transform: `translate(${left}px, ${top}px)`, width }} aria-label={name}>
+    className={s.w} style={{ transform: `translate(${left}px, ${top}px)`, width }} aria-label={name}
+    onFocus={pick} onPointerDown={pick}>
     {/* Gutter handle on the left: drag it to move the widget, press it for the widget menu. */}
     {api.edit && <button type="button" className={s.handle} data-handle title="Тяните, чтобы переставить. Нажмите, чтобы открыть меню"
       aria-label={`Переместить или изменить виджет «${name}»`} aria-haspopup="listbox" aria-expanded={!!more} aria-describedby={ctl.hintId}
