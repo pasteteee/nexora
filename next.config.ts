@@ -32,6 +32,10 @@ for (const [name, value] of Object.entries(process.env)) {
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["pdfjs-dist", "@napi-rs/canvas"],
+  // PDF.js loads its worker by a runtime path; keep it in the processing function.
+  outputFileTracingIncludes: {
+    "/api/sources/[sourceId]/process": ["./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"],
+  },
   reactStrictMode: true,
   poweredByHeader: false,
   devIndicators: false,

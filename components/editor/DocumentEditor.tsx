@@ -86,6 +86,24 @@ export function DocumentEditor({ title }: { title?: string }) {
     if (node && !node.contains(document.activeElement)) node.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selected]);
 
+  // Undo/redo for block operations. Listening on window keeps Ctrl+Z working after a
+  // drag or a block-menu click, when focus has fallen back to <body>. Text fields keep
+  // their own native history.
+  useEffect(() => {
+    if (!canEdit) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || !(e.ctrlKey || e.metaKey)) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("textarea,input,select,[contenteditable]:not([contenteditable=false]),[role=dialog],[role=menu]")) return;
+      const key = e.key.toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      e.preventDefault();
+      if (key === "y" || e.shiftKey) useEditor.getState().redo(); else useEditor.getState().undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canEdit]);
+
   function history(redo: boolean, id: string) {
     const st = useEditor.getState();
     const before = documentBlocks(st.els), index = before.findIndex((el) => el.id === id);
@@ -160,12 +178,7 @@ export function DocumentEditor({ title }: { title?: string }) {
     if (kind === "image") await insertImages(chosen, { x: 0, y: 0 });
     else await insertSources(chosen, { x: 0, y: 0 });
   }
-  return <div ref={root} className={s.editor} aria-label={title ? `Документ: ${title}` : "Документ"} onKeyDown={(e) => {
-    const target = e.target as HTMLElement;
-    if (canEdit && !target.matches("textarea,input,[contenteditable]" ) && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-      e.preventDefault(); if (e.shiftKey) useEditor.getState().redo(); else useEditor.getState().undo();
-    }
-  }} onDragOver={(e) => { if (canEdit && e.dataTransfer.types.includes("Files")) e.preventDefault(); }}
+  return <div ref={root} className={s.editor} aria-label={title ? `Документ: ${title}` : "Документ"} onDragOver={(e) => { if (canEdit && e.dataTransfer.types.includes("Files")) e.preventDefault(); }}
   onDrop={(e) => { if (canEdit && e.dataTransfer.files.length) { e.preventDefault(); const files = [...e.dataTransfer.files]; void upload("image", files.filter((f) => f.type.startsWith("image/"))); void upload("source", files.filter((f) => !f.type.startsWith("image/"))); } }}>
     <article className={s.document} onClick={(e) => {
       if (!canEdit || e.target !== e.currentTarget) return;

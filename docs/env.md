@@ -7,6 +7,7 @@
 | `NEXT_PUBLIC_SUPABASE_URL` | клиент + сервер | адрес проекта Supabase |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | клиент + сервер | публикуемый ключ `sb_publishable_…`, права ограничены RLS |
 | `SUPABASE_SECRET_KEY` | только сервер | фоновые задачи (`sb_secret_…`), журнал `ai_requests` |
+| `CRON_SECRET` | только сервер | ежедневная очистка корзины старше 30 дней (`/api/cron/purge-trash`, расписание в `vercel.json`) |
 | `APP_URL`, `SOURCE_SIGNED_URL_TTL_SECONDS` | только сервер | адрес приложения, срок подписанной ссылки на файл |
 | `AI_PROVIDER`, `AI_API_KEY`, `EMBEDDINGS_API_KEY` | только сервер | адаптер ИИ (ADR-002) |
 | `MAX_UPLOAD_MB` и др. лимиты | сервер | меняются без правки кода (п. 4.2.6) |
