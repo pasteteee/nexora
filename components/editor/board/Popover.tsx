@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import s from "./board.module.css";
 
@@ -55,18 +55,36 @@ export function Popover({ anchor, rect, onClose, children, wide, label, role = "
 
 export type MenuItem = { section: string } | { label: string; ico?: string; hint?: string; danger?: boolean; run(): void };
 
-/** List menu with a highlighted row; the owner drives arrows and Enter through the returned index. */
-export function MenuList({ title, items, sel, onPick }: { title?: string; items: MenuItem[]; sel: number; onPick(i: number): void }) {
+/**
+ * List menu with a highlighted row; the owner drives arrows and Enter through the returned index.
+ * Screen readers follow the highlighted row: a text field anchor (the line being typed) keeps focus
+ * and points at it with aria-activedescendant; for a button anchor (the widget handle) focus moves to the row.
+ */
+export function MenuList({ title, label, items, sel, onPick, anchor }: { title?: string; label?: string; items: MenuItem[]; sel: number; onPick(i: number): void; anchor?: HTMLElement | null }) {
   const box = useRef<HTMLDivElement>(null);
+  const id = useId();
   let n = -1;
   useEffect(() => { box.current?.querySelector("[data-sel]")?.scrollIntoView({ block: "nearest" }); }, [sel]);
   const actions = items.filter((x) => !("section" in x));
-  return <div ref={box} className={s.menu} role="listbox">
+  const active = actions.length ? `${id}-${Math.min(sel, actions.length - 1)}` : null;
+  useEffect(() => {
+    if (!anchor) return;
+    if (!anchor.matches("textarea, input")) {
+      if (active) document.getElementById(active)?.focus({ preventScroll: true });
+      return;
+    }
+    anchor.setAttribute("aria-controls", id);
+    if (active) anchor.setAttribute("aria-activedescendant", active); else anchor.removeAttribute("aria-activedescendant");
+    return () => { anchor.removeAttribute("aria-activedescendant"); anchor.removeAttribute("aria-controls"); };
+  }, [anchor, id, active]);
+  return <div ref={box} id={id} className={s.menu} role="listbox" aria-label={label ?? title ?? "Меню"}
+    // Focus stays in the text field, so the long list must be reachable with Tab to scroll it from the keyboard.
+    tabIndex={anchor?.matches("textarea, input") ? 0 : -1}>
     {title && <div className={s.menuH}>{title}</div>}
     {items.map((it, i) => {
       if ("section" in it) return <div key={`s${i}`} className={s.menuH}>{it.section}</div>;
       const idx = ++n;
-      return <button key={i} type="button" role="option" aria-selected={idx === sel} data-sel={idx === sel || undefined} className={`${s.menuI} ${it.danger ? s.danger : ""}`}
+      return <button key={i} id={`${id}-${idx}`} type="button" role="option" tabIndex={-1} aria-selected={idx === sel} data-sel={idx === sel || undefined} className={`${s.menuI} ${it.danger ? s.danger : ""}`}
         onPointerDown={(e) => e.preventDefault()} onClick={() => onPick(idx)}>
         {it.ico && <span className={s.ico}>{it.ico}</span>}<span>{it.label}</span>{it.hint && <small>{it.hint}</small>}
       </button>;
@@ -85,12 +103,12 @@ export function Menu({ anchor, title, items, onClose, wide }: { anchor: HTMLElem
     const key = (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") { e.preventDefault(); setSel((v) => (v + 1) % Math.max(1, acts.length)); }
       if (e.key === "ArrowUp") { e.preventDefault(); setSel((v) => (v - 1 + acts.length) % Math.max(1, acts.length)); }
-      if (e.key === "Enter") { e.preventDefault(); const a = acts[sel]; onClose(); a?.run(); }
+      if (e.key === "Enter") { e.preventDefault(); const a = acts[sel]; anchor?.focus(); onClose(); a?.run(); }
     };
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
-  }, [acts, sel, onClose]);
+  }, [acts, sel, onClose, anchor]);
   return <Popover anchor={anchor} onClose={onClose} wide={wide} role="presentation">
-    <MenuList title={title} items={items} sel={sel} onPick={(i) => { onClose(); acts[i]?.run(); }} />
+    <MenuList title={title} items={items} sel={sel} anchor={anchor} onPick={(i) => { anchor?.focus(); onClose(); acts[i]?.run(); }} />
   </Popover>;
 }

@@ -11,7 +11,7 @@
 .offline { color: var(--danger); }
 .share {
   display: inline-flex; align-items: center; gap: 6px; height: 33px; padding: 0 12px; border: 0; border-radius: 7px;
-  background: var(--accent); color: #fff; font: 600 12px var(--font); cursor: pointer; white-space: nowrap;
+  background: var(--accent); color: var(--accent-ink); font: 600 12px var(--font); cursor: pointer; white-space: nowrap;
 }
 .share:hover { filter: brightness(1.06); }
 .share:focus-visible, .tab:focus-visible, .icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

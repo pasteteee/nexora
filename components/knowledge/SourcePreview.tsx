@@ -11,6 +11,7 @@ import {
 } from "@/lib/knowledge/preview";
 import type { Source } from "@/lib/types";
 import s from "./source-preview.module.css";
+import { scrollBehavior } from "@/lib/motion";
 
 export function SourcePreview(props: { source: Source; onClose: () => void }) {
   return <Preview key={props.source.id} {...props} />;
@@ -117,7 +118,7 @@ function Preview({ source, onClose }: { source: Source; onClose: () => void }) {
               onClick={() =>
                 scroll.current
                   ?.querySelector(`[data-preview-index="${index}"]`)
-                  ?.scrollIntoView({ block: "start", behavior: "smooth" })
+                  ?.scrollIntoView({ block: "start", behavior: scrollBehavior() })
               }
             >
               {page.ref || "Текст документа"}

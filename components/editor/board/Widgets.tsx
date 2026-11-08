@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ImageView } from "@/components/editor/elements/ImageView";
+import { useEditor } from "@/lib/editor/store";
 import { SourceCard } from "@/components/editor/elements/SourceCard";
 import { compileFn, fmtNum, niceStep, toTex } from "@/lib/editor/board/math";
 import { NOTE_COLORS, NOTE_LIMIT, dataOf, randomIn, linesOf, plural, uid, type DiagramNode, type DiagramShape, type NoteWidget, type Widget, type WidgetData, type WidgetType } from "@/lib/editor/board/model";
@@ -10,6 +11,7 @@ import { Menu, Popover } from "./Popover";
 import { TextWidget } from "./TextWidget";
 import { useBoard, type BoardApi } from "./context";
 import s from "./board.module.css";
+import { scrollBehavior } from "@/lib/motion";
 
 export type Action = { label: string; title?: string; run(): void; swatch?: string; on?: boolean };
 export type WidgetProps = { w: Widget; form: string | null; setForm(f: string | null): void; frame: HTMLElement | null };
@@ -349,6 +351,8 @@ function CodeView({ w }: WidgetProps) {
 /* ---------------- table of contents ---------------- */
 function TocView() {
   const api = useBoard();
+  // Headings live in other widgets: follow the page, not only this widget.
+  useEditor((st) => st.els);
   const heads = api.ordered().filter((x) => x.type === "text").flatMap((x) => linesOf(x.el).filter((l) => /^h[123]$/.test(l.t) && l.text).map((l) => ({ w: x.id, l })));
   return <div className={s.stack}>
     <div className={s.tocH}>Содержание</div>
@@ -356,7 +360,7 @@ function TocView() {
       {heads.map(({ w, l }) => <li key={l.id} data-line={l.t}><a href={`#${l.id}`} onClick={(e) => {
         e.preventDefault();
         const t = document.querySelector<HTMLElement>(`[data-wid="${w}"] [data-lid="${l.id}"]`);
-        if (t) { t.scrollIntoView({ behavior: "smooth", block: "center" }); t.focus({ preventScroll: true }); }
+        if (t) { t.scrollIntoView({ behavior: scrollBehavior(), block: "center" }); t.focus({ preventScroll: true }); }
       }}>{l.text}</a></li>)}
       {!heads.length && <li className={s.empty}>Добавьте заголовки, и они появятся здесь</li>}
     </ol>

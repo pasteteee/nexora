@@ -1,6 +1,6 @@
 /* Page of widgets (design v3, variant 1 «Поток»). Theme tokens live on .bd; notebook themes set data-nb. */
 .bd {
-  --bg: #f6f6f3; --paper: #fdfdfb; --ink: #1c1e21; --ink-2: #55585e; --ink-3: #93969c; --line: #e3e3de; --line-strong: #d0d0ca;
+  --bg: #f6f6f3; --paper: #fdfdfb; --ink: #1c1e21; --ink-2: #55585e; --ink-3: #676a6e; --line: #e3e3de; --line-strong: #d0d0ca;
   --accent: #1f4e8c; --accent-soft: #e0e8f4; --accent-ink: #fff; --hl: #eeeeea; --callout-bg: #e9eff8; --shadow: rgba(20,30,50,.3);
   --ok: #2a7a4b; --ok-soft: #e1f0e6; --warn: #a85d00; --warn-soft: #fbecd6; --danger: #b8321f; --danger-soft: #f8e2de;
   --note-yellow: #fff1b8; --note-pink: #ffdbe3; --note-green: #d8f2dd; --note-blue: #dae8ff; --note-violet: #e7defd; --note-gray: #ecebe8;
@@ -17,23 +17,23 @@
 .inner { max-width: 1180px; margin: 0 auto; position: relative; }
 @media (prefers-color-scheme: dark) {
   .bd:not([data-nb]) {
-    --bg: #15171a; --paper: #1c1f23; --ink: #eceae5; --ink-2: #b3b0a9; --ink-3: #7f838a; --line: #2b2f35; --line-strong: #3a3f46;
+    --bg: #15171a; --paper: #1c1f23; --ink: #eceae5; --ink-2: #b3b0a9; --ink-3: #8e9197; --line: #2b2f35; --line-strong: #3a3f46;
     --accent: #8db2ea; --accent-soft: #1f2b3d; --accent-ink: #0f1620; --hl: #252930; --callout-bg: #1e2733; --shadow: rgba(0,0,0,.6);
     --ok: #6cc08f; --ok-soft: #1a2c22; --warn: #e7a855; --warn-soft: #33261a; --danger: #ef8a78; --danger-soft: #3a1f1b;
     --note-yellow: #4a4224; --note-pink: #4a2b34; --note-green: #22402c; --note-blue: #22344f; --note-violet: #352b52; --note-gray: #33353a; color-scheme: dark;
   }
 }
-.bd[data-nb="grid"] { --bg: #eef1f6; --paper: #fcfdff; --ink: #1d2433; --ink-2: #4a5468; --ink-3: #8b94a6; --line: #dbe2ee; --line-strong: #c6cfdf; --accent: #2347b8; --accent-soft: #dfe6fb; --accent-ink: #fff; --hl: #e9eef8; --callout-bg: #e5ebfa;
+.bd[data-nb="grid"] { --bg: #eef1f6; --paper: #fcfdff; --ink: #1d2433; --ink-2: #4a5468; --ink-3: #626b7b; --line: #dbe2ee; --line-strong: #c6cfdf; --accent: #2347b8; --accent-soft: #dfe6fb; --accent-ink: #fff; --hl: #e9eef8; --callout-bg: #e5ebfa;
   --pattern: linear-gradient(rgba(60,95,170,.14) 1px, transparent 1px), linear-gradient(90deg, rgba(60,95,170,.14) 1px, transparent 1px); --pattern-size: 24px 24px; --f-head: var(--font-caveat), "Caveat", "Comic Sans MS", cursive; --h-weight: 700; --lh: 24px; }
-.bd[data-nb="lined"] { --bg: #f3f3ef; --paper: #fefefb; --ink: #1f2224; --ink-2: #53585c; --ink-3: #91969a; --line: #e0e3e1; --line-strong: #cdd2cf; --accent: #0e6b6b; --accent-soft: #d8ecea; --accent-ink: #fff; --hl: #ecefec; --callout-bg: #e2efed;
+.bd[data-nb="lined"] { --bg: #f3f3ef; --paper: #fefefb; --ink: #1f2224; --ink-2: #53585c; --ink-3: #676b6e; --line: #e0e3e1; --line-strong: #cdd2cf; --accent: #0e6b6b; --accent-soft: #d8ecea; --accent-ink: #fff; --hl: #ecefec; --callout-bg: #e2efed;
   --pattern: linear-gradient(transparent 25px, rgba(70,120,170,.2) 25px, rgba(70,120,170,.2) 26px); --pattern-size: 100% 26px; --margin: rgba(214,72,60,.55); --lh: 26px; }
-.bd[data-nb="dots"] { --bg: #f1f0ec; --paper: #fffefa; --ink: #1e1d1a; --ink-2: #58554e; --ink-3: #9a968c; --line: #e4e1d8; --line-strong: #d0ccc0; --accent: #c84a0c; --accent-soft: #fbe1d0; --accent-ink: #fff; --hl: #efece5; --callout-bg: #fbeadd;
+.bd[data-nb="dots"] { --bg: #f1f0ec; --paper: #fffefa; --ink: #1e1d1a; --ink-2: #58554e; --ink-3: #6c6962; --line: #e4e1d8; --line-strong: #d0ccc0; --accent: #ae430e; --accent-soft: #fbe1d0; --accent-ink: #fff; --hl: #efece5; --callout-bg: #fbeadd;
   --pattern: radial-gradient(rgba(70,60,40,.28) 1.1px, transparent 1.4px); --pattern-size: 18px 18px; --f-head: var(--f-text); --h-weight: 600; }
-.bd[data-nb="kraft"] { --bg: #e6d8bf; --paper: #f5ecdb; --ink: #2b2118; --ink-2: #5c4a39; --ink-3: #8f7a63; --line: #dccbb0; --line-strong: #cbb593; --accent: #8a3b12; --accent-soft: #efd9c2; --accent-ink: #fff; --hl: #eadcc4; --callout-bg: #ecdcc3;
-  --pattern: repeating-linear-gradient(115deg, rgba(90,60,20,.035) 0 2px, transparent 2px 7px); }
-.bd[data-nb="night"] { --bg: #111418; --paper: #191d22; --ink: #e8e6e1; --ink-2: #aeaba4; --ink-3: #767a81; --line: #272c33; --line-strong: #363c45; --accent: #f0b44c; --accent-soft: #3a2e17; --accent-ink: #1a1408; --hl: #21262d; --callout-bg: #262117; --shadow: rgba(0,0,0,.65);
+.bd[data-nb="kraft"] { --bg: #e6d8bf; --paper: #f5ecdb; --ink: #2b2118; --ink-2: #5c4a39; --ink-3: #6c5b49; --line: #dccbb0; --line-strong: #cbb593; --accent: #8a3b12; --accent-soft: #efd9c2; --accent-ink: #fff; --hl: #eadcc4; --callout-bg: #ecdcc3;
+  --pattern: repeating-linear-gradient(115deg, rgba(90,60,20,.035) 0 2px, transparent 2px 7px); --ok: #2a784a; --warn: #9e5802;}
+.bd[data-nb="night"] { --bg: #111418; --paper: #191d22; --ink: #e8e6e1; --ink-2: #aeaba4; --ink-3: #8c8f93; --line: #272c33; --line-strong: #363c45; --accent: #f0b44c; --accent-soft: #3a2e17; --accent-ink: #1a1408; --hl: #21262d; --callout-bg: #262117; --shadow: rgba(0,0,0,.65);
   --ok: #6cc08f; --ok-soft: #1a2c22; --warn: #e7a855; --warn-soft: #33261a; --danger: #ef8a78; --danger-soft: #3a1f1b; --note-yellow: #4a4224; --note-pink: #4a2b34; --note-green: #22402c; --note-blue: #22344f; --note-violet: #352b52; --note-gray: #33353a; color-scheme: dark; }
-.bd[data-nb="board"] { --bg: #1d3329; --paper: #244036; --ink: #eef2e8; --ink-2: #bccabd; --ink-3: #86a08e; --line: #33544a; --line-strong: #42675b; --accent: #f3d36b; --accent-soft: #4a4a2c; --accent-ink: #1f2a12; --hl: #2c4c41; --callout-bg: #2f4a3d; --shadow: rgba(0,0,0,.55);
+.bd[data-nb="board"] { --bg: #1d3329; --paper: #244036; --ink: #eef2e8; --ink-2: #bccabd; --ink-3: #a7baab; --line: #33544a; --line-strong: #42675b; --accent: #f3d36b; --accent-soft: #4a4a2c; --accent-ink: #1f2a12; --hl: #2c4c41; --callout-bg: #2f4a3d; --shadow: rgba(0,0,0,.55);
   --ok: #9ad8a9; --ok-soft: #2a4a38; --warn: #f3c56b; --warn-soft: #4a4029; --danger: #ff9f8f; --danger-soft: #4d2f2a; --note-yellow: #5a5430; --note-pink: #5a3a40; --note-green: #2f5a40; --note-blue: #2f4a60; --note-violet: #43395f; --note-gray: #3c4a44;
   --pattern: radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.05), transparent 60%); --f-head: var(--font-caveat), "Caveat", "Comic Sans MS", cursive; --h-weight: 700; color-scheme: dark; }
 
@@ -49,22 +49,27 @@
 
 /* canvas and widgets */
 .canvas { position: relative; min-height: 60px; }
-.w { position: absolute; box-sizing: border-box; border-radius: var(--r-m); transition: top .2s cubic-bezier(.2,.8,.2,1), left .2s cubic-bezier(.2,.8,.2,1), width .2s cubic-bezier(.2,.8,.2,1); }
+/* Placed with transform, not top/left: moving and reflowing widgets is composited, with no layout or repaint of the page. */
+.w { position: absolute; left: 0; top: 0; box-sizing: border-box; border-radius: var(--r-m); transition: transform .2s cubic-bezier(.2,.8,.2,1), width .2s cubic-bezier(.2,.8,.2,1); }
 .w::after { content: ""; position: absolute; inset: -6px; border-radius: calc(var(--r-m) + 4px); border: 1px solid transparent; pointer-events: none; transition: border-color .12s; }
 .w[data-edit]:hover::after { border-color: var(--line); }
 .w[data-dragging] { transition: none; z-index: 40; box-shadow: 0 22px 50px -18px var(--shadow); background: var(--paper); rotate: .4deg; opacity: .96; pointer-events: none; }
 .w[data-dropped]::after { border-color: var(--accent); }
-:global(body[data-bd-dragging]), :global(body[data-bd-dragging] *) { cursor: grabbing !important; user-select: none; }
-:global(body[data-bd-resizing]), :global(body[data-bd-resizing] *) { cursor: ew-resize !important; user-select: none; }
-:global(body[data-bd-resizing]) .w { transition: none; }
-.ph { position: absolute; border: 2px dashed var(--accent); background: var(--accent-soft); border-radius: var(--r-m); transition: top .15s ease-out, left .15s ease-out, width .15s ease-out; }
-.ghost { position: absolute; z-index: 40; pointer-events: none; padding: 14px 16px; border-radius: var(--r-m); background: var(--paper); border: 1px solid var(--line); box-shadow: 0 22px 50px -18px var(--shadow); font: 600 14px var(--f-ui); }
+/* While dragging or resizing, a transparent shield takes the pointer: no hover effects and no hit testing of 100+ widgets.
+   An inherited property (cursor, pointer-events, user-select) switched on the page instead would restyle every node in one frame. */
+/* text for screen readers only */
+.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.shield { position: fixed; inset: 0; z-index: 999; cursor: grabbing; touch-action: none; }
+.shield[data-mode="resize"] { cursor: ew-resize; }
+.bd[data-resizing] .w { transition: none; }
+.ph { position: absolute; left: 0; top: 0; border: 2px dashed var(--accent); background: var(--accent-soft); border-radius: var(--r-m); transition: transform .15s ease-out, width .15s ease-out; }
+.ghost { position: absolute; left: 0; top: 0; will-change: transform; z-index: 40; pointer-events: none; padding: 14px 16px; border-radius: var(--r-m); background: var(--paper); border: 1px solid var(--line); box-shadow: 0 22px 50px -18px var(--shadow); font: 600 14px var(--f-ui); }
 .body { position: relative; }
 
 /* floating toolbar above the widget: never takes space */
 .handle { position: absolute; left: -24px; top: 2px; width: 22px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--ink-3); cursor: grab; touch-action: none; opacity: 0; transition: opacity .12s, background .12s, color .12s; z-index: 31; }
 .handle svg { width: 10px; height: 16px; fill: currentColor; }
-.w:hover > .handle, .handle:focus-visible, .handle[aria-expanded="true"] { opacity: 1; }
+.w:hover > .handle, .handle:focus, .handle[aria-expanded="true"] { opacity: 1; }
 .handle:hover { background: var(--hl); color: var(--ink); }
 .handle:active { cursor: grabbing; }
 .handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
