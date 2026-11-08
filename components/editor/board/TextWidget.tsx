@@ -134,7 +134,7 @@ export function TextWidget({ w }: { w: Widget }) {
       </div>;
     })}
     {slash && slashLine && menuActions(slashItems(slashLine, slash.q)).length > 0 && <Popover anchor={slash.anchor} onClose={() => setSlash(null)} wide role="presentation">
-      <MenuList items={slashItems(slashLine, slash.q)} sel={slash.sel} onPick={(k) => menuActions(slashItems(slashLine, slash.q))[k]?.run()} />
+      <MenuList label="Блоки и виджеты" anchor={slash.anchor} items={slashItems(slashLine, slash.q)} sel={slash.sel} onPick={(k) => menuActions(slashItems(slashLine, slash.q))[k]?.run()} />
     </Popover>}
   </div>;
 }

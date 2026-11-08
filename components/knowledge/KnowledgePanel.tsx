@@ -21,6 +21,7 @@ import type { Source } from "@/lib/types";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import s from "./knowledge.module.css";
 import { SourcePreview } from "./SourcePreview";
+import { scrollBehavior } from "@/lib/motion";
 
 type Match = {
   id: string;
@@ -275,7 +276,7 @@ function KnowledgePanelContent({
       requestAnimationFrame(() =>
         document
           .querySelector(`[data-document-block-id="${element.id}"]`)
-          ?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
+          ?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() }),
       );
     }
   }

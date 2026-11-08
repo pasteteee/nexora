@@ -11,6 +11,7 @@ import { Menu, Popover } from "./Popover";
 import { TextWidget } from "./TextWidget";
 import { useBoard, type BoardApi } from "./context";
 import s from "./board.module.css";
+import { scrollBehavior } from "@/lib/motion";
 
 export type Action = { label: string; title?: string; run(): void; swatch?: string; on?: boolean };
 export type WidgetProps = { w: Widget; form: string | null; setForm(f: string | null): void; frame: HTMLElement | null };
@@ -359,7 +360,7 @@ function TocView() {
       {heads.map(({ w, l }) => <li key={l.id} data-line={l.t}><a href={`#${l.id}`} onClick={(e) => {
         e.preventDefault();
         const t = document.querySelector<HTMLElement>(`[data-wid="${w}"] [data-lid="${l.id}"]`);
-        if (t) { t.scrollIntoView({ behavior: "smooth", block: "center" }); t.focus({ preventScroll: true }); }
+        if (t) { t.scrollIntoView({ behavior: scrollBehavior(), block: "center" }); t.focus({ preventScroll: true }); }
       }}>{l.text}</a></li>)}
       {!heads.length && <li className={s.empty}>Добавьте заголовки, и они появятся здесь</li>}
     </ol>
