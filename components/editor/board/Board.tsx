@@ -8,21 +8,22 @@ import { IMAGE_ACCEPT, SOURCE_ACCEPT } from "@/lib/data/upload-rules";
 import { toast } from "@/components/ui";
 import {
   CATALOG, CATALOG_BY_TYPE, COLS, DEFAULT_SPAN, GAP, MIN_SPAN, NARROW, TEXT_LIMIT,
-  defaultData, linesOf, linesToMarkdown, pack, pageWidgets, summary, uid,
-  type Layout, type Line, type NoteWidget, type Widget, type WidgetType,
+  defaultData, linesOf, linesToMarkdown, pack, pageWidgets, sideSlot, summary, uid,
+  type Layout, type Side, type Line, type NoteWidget, type Widget, type WidgetType,
 } from "@/lib/editor/board/model";
 import type { CanvasElement, NotebookTheme } from "@/lib/types";
 import { BoardContext, useBoard as useContextApi, type BoardApi, type FocusRequest } from "./context";
-import { LayerContext, Menu, Popover } from "./Popover";
+import { LayerContext, Menu, Popover, type MenuItem } from "./Popover";
 import { WIDGETS } from "./Widgets";
 import s from "./board.module.css";
 
-type Drag = { id: string | null; type: WidgetType; span: number; h: number; col: number; y: number; left: number; top: number; keys: Record<string, number> };
+type Drag = { id: string | null; type: WidgetType; span: number; h: number; col: number; y: number; left: number; top: number; keys: Record<string, number>; side: Side | null };
 type Placed = { id: string; col: number; span: number; key: number; h: number; top: number };
 
 const nextKey = (ws: Widget[], key: number) => ws.reduce((m, w) => (w.layout.key > key && w.layout.key < m ? w.layout.key : m), Infinity);
 const between = (a: number, b: number, k = 1, n = 2) => (Number.isFinite(b) ? a + ((b - a) * k) / n : a + k);
-const sameLayout = (a: Layout, b: Layout) => a.col === b.col && a.span === b.span && Math.abs(a.key - b.key) < 0.01;
+const sameLayout = (a: Layout, b: Layout) => a.col === b.col && a.span === b.span && Math.abs(a.key - b.key) < 0.01 && JSON.stringify(a.beside ?? null) === JSON.stringify(b.beside ?? null);
+const plain = ({ beside: _b, ...l }: Layout): Layout => { void _b; return l; };
 
 function scrollParent(n: HTMLElement | null): HTMLElement | null {
   for (let p = n?.parentElement; p; p = p.parentElement) {
@@ -99,9 +100,13 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
   const placeAll = (d: Drag | null): Placed[] => {
     const items = widgets.filter((w) => w.id !== d?.id).map((w) => {
       const l = layoutOf(w);
-      return { id: w.id, col: narrow ? 0 : l.col, span: narrow ? COLS : l.span, key: d ? d.keys[w.id] ?? l.key : l.key, h: heights[w.id] ?? 60 };
+      const sd = d?.side?.id === w.id ? d.side : null;
+      return { id: w.id, col: narrow ? 0 : sd ? sd.tcol : l.col, span: narrow ? COLS : sd ? sd.tspan : l.span, key: d ? d.keys[w.id] ?? l.key : l.key, h: heights[w.id] ?? 60 };
     });
-    if (d) items.push({ id: "__ph", col: narrow ? 0 : d.col, span: narrow ? COLS : d.span, key: d.y, h: d.h });
+    if (d) {
+      const sd = d.side, key = sd ? (d.keys[sd.id] ?? 0) + (sd.left ? -0.25 : 0.25) : d.y;
+      items.push({ id: "__ph", col: narrow ? 0 : sd ? sd.col : d.col, span: narrow ? COLS : sd ? sd.span : d.span, key, h: d.h });
+    }
     return pack(items);
   };
   const placed = placeAll(drag);
@@ -138,6 +143,19 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
     setTimeout(() => setNotices((n) => { if (n[id] !== message) return n; const c = { ...n }; delete c[id]; return c; }), 3200);
   }, []);
 
+  /** A widget placed beside another moves away or is deleted: it gets its own width back, the other one too if nothing is in the way. */
+  const release = (w: Widget, lay: Record<string, Layout>) => {
+    const b = w.layout.beside;
+    if (!b) return;
+    lay[w.id] = { ...plain(lay[w.id] ?? w.layout), span: b.own };
+    const t = lay[b.id] ?? widgets.find((x) => x.id === b.id)?.layout;
+    const tp = placedRef.current.find((p) => p.id === b.id);
+    if (!t || !tp) return;
+    const blocked = placedRef.current.some((o) => o.id !== w.id && o.id !== b.id
+      && o.top < tp.top + tp.h && tp.top < o.top + o.h && o.col < b.col + b.span && b.col < o.col + o.span);
+    if (!blocked) lay[b.id] = { ...t, col: b.col, span: b.span };
+  };
+
   const api: BoardApi = {
     edit: canEdit,
     setContent(id, patch) { const cur = st().els[id]; if (cur && st().canEdit) st().apply({ [id]: { content: { ...cur.content, ...patch } } }, "text"); },
@@ -148,7 +166,14 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       if (total > TEXT_LIMIT && total > linesOf(w.el).reduce((n, l) => n + (l.text ?? l.src ?? "").length, 0)) { notify(w.id, "В одном тексте до 20 000 знаков. Продолжите в новом тексте ниже"); return; }
       api.setContent(w.id, { lines, text: linesToMarkdown(lines) });
     },
-    remove(id) { if (st().canEdit) st().remove([id]); },
+    remove(id) {
+      if (!st().canEdit) return;
+      const w = widgets.find((x) => x.id === id), lay: Record<string, Layout> = {};
+      if (w?.layout.beside) release(w, lay);
+      const cur = st().els, patch: Record<string, Partial<CanvasElement>> = {};
+      for (const [k, l] of Object.entries(lay)) if (k !== id && cur[k]) patch[k] = { content: { ...cur[k].content, layout: l } };
+      st().batch({ remove: [id], patch });
+    },
     add(type, after) {
       const state = st();
       if (!state.canEdit || !state.canvasId) return;
@@ -213,27 +238,44 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
     api.add("text");
   }
 
+  /** Slot beside the widget under the pointer, when the pointer is in its left or right third and there is no room there. */
+  function sideAt(ev: PointerEvent, cr: DOMRect, w: Widget | null, span: number): Side | null {
+    for (const o of widgets) {
+      if (o.id === w?.id) continue;
+      const node = canvas.current?.querySelector<HTMLElement>(`[data-wid="${CSS.escape(o.id)}"]`);
+      if (!node) continue;
+      // Columns as they would be without this widget beside them, so the slot does not flicker while the target narrows.
+      const own = w?.layout.beside?.id === o.id ? w.layout.beside : null;
+      const lo = own ? { id: o.id, col: own.col, span: own.span } : { id: o.id, col: o.layout.col, span: o.layout.span };
+      const b = box(lo.col, lo.span), r = node.getBoundingClientRect(), x0 = cr.left + b.left;
+      if (ev.clientX < x0 - 24 || ev.clientX > x0 + b.width + 24 || ev.clientY < r.top || ev.clientY > r.bottom) continue;
+      return sideSlot(lo, span, (ev.clientX - x0) / b.width);
+    }
+    return null;
+  }
+
   /* ---------- drag anywhere, live reflow ---------- */
-  function startDrag(e: React.PointerEvent, w: Widget | null, type: WidgetType = w?.type ?? "text") {
+  function startDrag(e: React.PointerEvent, w: Widget | null, type: WidgetType = w?.type ?? "text", onTap?: () => void) {
     if (e.button !== 0 || !canEdit) return;
     e.preventDefault();
     const c = canvas.current!, sx = e.clientX, sy = e.clientY;
     const node = w ? c.querySelector<HTMLElement>(`[data-wid="${CSS.escape(w.id)}"]`) : null;
     const er = node?.getBoundingClientRect();
     const ox = er ? sx - er.left : 40, oy = er ? sy - er.top : 16;
-    const span = w ? w.layout.span : DEFAULT_SPAN[type];
+    const span = w ? w.layout.beside?.own ?? w.layout.span : DEFAULT_SPAN[type];
     const scroller = scrollParent(c);
     let cur: Drag | null = null, started = !w;
     const begin = () => {
       const keys = Object.fromEntries(placedRef.current.map((p) => [p.id, p.top]));
-      cur = { id: w?.id ?? null, type, span, h: node?.offsetHeight ?? 120, col: w?.layout.col ?? 0, y: w ? keys[w.id] ?? 0 : 1e9, left: 0, top: 0, keys };
+      cur = { id: w?.id ?? null, type, span, h: node?.offsetHeight ?? 120, col: w?.layout.col ?? 0, y: w ? keys[w.id] ?? 0 : 1e9, left: 0, top: 0, keys, side: null };
       document.body.setAttribute("data-bd-dragging", "");
     };
     if (started) begin();
     const move = (ev: PointerEvent) => {
       if (!started) { if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 4) return; started = true; begin(); }
       const cr = c.getBoundingClientRect(), left = ev.clientX - cr.left - ox, top = ev.clientY - cr.top - oy;
-      cur = { ...cur!, left, top, col: narrow ? cur!.col : Math.max(0, Math.min(COLS - span, Math.round(left / stepX))), y: top - 1 };
+      const side = narrow ? null : sideAt(ev, cr, w, span);
+      cur = { ...cur!, left, top, col: narrow ? cur!.col : Math.max(0, Math.min(COLS - span, Math.round(left / stepX))), y: top - 1, side };
       setDrag(cur);
       const vh = window.innerHeight;
       if (ev.clientY > vh - 60) (scroller ?? window).scrollBy(0, 14); else if (ev.clientY < 60) (scroller ?? window).scrollBy(0, -14);
@@ -242,20 +284,28 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", up);
       document.body.removeAttribute("data-bd-dragging");
       const d = cur; setDrag(null);
-      if (!started || !d) return;
+      if (!started || !d) { if (!started) onTap?.(); return; }
       if (!w) {
         const cr = c.getBoundingClientRect();
         if (ev.clientY < cr.top - 80 || ev.clientX < cr.left - 120 || ev.clientX > cr.right + 120) return;
       }
       // Fix the result: every widget keeps the top it has now, the dropped one sits just above its slot.
       const final = placeAll(d), ph = final.find((p) => p.id === "__ph")!;
-      const patches: Record<string, Layout> = {};
-      for (const p of final) {
-        if (p.id === "__ph") continue;
-        const wd = widgets.find((x) => x.id === p.id)!, l: Layout = { ...wd.layout, key: p.top };
-        if (!wd.el.content.layout || !sameLayout(l, wd.layout)) patches[p.id] = l;
+      const lay: Record<string, Layout> = {};
+      for (const p of final) if (p.id !== "__ph") lay[p.id] = { ...widgets.find((x) => x.id === p.id)!.layout, key: p.top };
+      if (w) release(w, lay);
+      let l: Layout = { col: d.col, span: d.span, key: ph.top - 0.5 };
+      const t = d.side && lay[d.side.id];
+      if (d.side && t) {
+        const sd = d.side;
+        l = { col: sd.col, span: sd.span, key: t.key + (sd.left ? -0.25 : 0.25), beside: { id: sd.id, col: t.col, span: t.span, own: d.span } };
+        lay[sd.id] = { ...t, col: sd.tcol, span: sd.tspan };
       }
-      const l: Layout = { col: d.col, span: d.span, key: ph.top - 0.5 };
+      const patches: Record<string, Layout> = {};
+      for (const [id, nl] of Object.entries(lay)) {
+        const wd = widgets.find((x) => x.id === id)!;
+        if (id !== w?.id && (!wd.el.content.layout || !sameLayout(nl, wd.layout))) patches[id] = nl;
+      }
       if (w) { patches[w.id] = l; writeLayouts(patches); setDropped(w.id); setTimeout(() => setDropped(null), 500); return; }
       if (type === "image" || type === "source" || type === "fragment") { writeLayouts(patches); api.add(type); return; }
       const state = st();
@@ -293,16 +343,16 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", up);
       document.body.removeAttribute("data-bd-resizing");
       setResize(null);
-      if (span !== span0) writeLayouts({ [w.id]: { ...w.layout, span } });
+      if (span !== span0) writeLayouts({ [w.id]: { ...plain(w.layout), span } });
     };
     document.addEventListener("pointermove", move); document.addEventListener("pointerup", up);
   }
-  const setSpan = (w: Widget, span: number) => writeLayouts({ [w.id]: { ...w.layout, span, col: Math.min(w.layout.col, COLS - span) } });
+  const setSpan = (w: Widget, span: number) => writeLayouts({ [w.id]: { ...plain(w.layout), span, col: Math.min(w.layout.col, COLS - span) } });
   const duplicate = (w: Widget) => {
     const state = st(); if (!state.canvasId) return;
     const copy: CanvasElement = { ...structuredClone(w.el), id: crypto.randomUUID(), zIndex: topZ(state.els), updatedAt: new Date().toISOString() };
     if (Array.isArray(copy.content.lines)) copy.content.lines = (copy.content.lines as Line[]).map((l) => ({ ...l, id: uid() }));
-    copy.content.layout = { ...w.layout, key: between(w.layout.key, nextKey(widgets, w.layout.key)) };
+    copy.content.layout = { ...plain(w.layout), key: between(w.layout.key, nextKey(widgets, w.layout.key)) };
     writeLayouts({}, [copy]);
   };
 
@@ -323,7 +373,7 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
       <div className={s.inner}>
       {header}
       <div className={s.meta}>
-        {canEdit ? <><span>Тяните <kbd>⋮⋮</kbd> над виджетом в любое место, остальные подвинутся</span>
+        {canEdit ? <><span>Тяните <kbd>⋮⋮</kbd> слева от виджета в любое место, остальные подвинутся</span>
           <span><kbd>/</kbd> в тексте открывает блоки и виджеты</span></> : <span>Только просмотр</span>}
         <span className={s.metaTools}>{tools}
           {canEdit && <button type="button" className={s.btnPrimary} aria-haspopup="dialog" onClick={(e) => setGallery(e.currentTarget)}>+ Виджет</button>}</span>
@@ -334,11 +384,13 @@ export function Board({ header, tools, theme = "clean", onOpenMaterials }: { hea
           const l = layoutOf(w), b = box(l.col, l.span), dragging = drag?.id === w.id;
           return <Frame key={w.id} w={w} measure={measure} dragging={dragging} dropped={dropped === w.id} notice={notices[w.id]}
             style={dragging ? { left: drag!.left, top: drag!.top, width: b.width } : { left: b.left, top: tops[w.id] ?? 0, width: b.width }}
-            onHandle={(e) => startDrag(e, w)} onHandleKey={(e) => keyMove(e, w)} onResize={narrow ? undefined : (e) => startResize(e, w)}
+            onHandle={(e, open) => startDrag(e, w, w.type, open)} onHandleKey={(e) => keyMove(e, w)} onResize={narrow ? undefined : (e) => startResize(e, w)}
             menu={[
-              { label: "На всю ширину", ico: "↔", run: () => setSpan(w, COLS) },
-              { label: "Половина", ico: "½", run: () => setSpan(w, 12) },
-              { label: "Треть", ico: "⅓", run: () => setSpan(w, 8) },
+              { section: "Ширина" },
+              { label: "На всю ширину", ico: "▭", hint: l.span === COLS ? "сейчас" : undefined, run: () => setSpan(w, COLS) },
+              { label: "Половина", ico: "◧", hint: l.span === 12 ? "сейчас" : undefined, run: () => setSpan(w, 12) },
+              { label: "Треть", ico: "◫", hint: l.span === 8 ? "сейчас" : undefined, run: () => setSpan(w, 8) },
+              { section: "Действия" },
               { label: "Дублировать", ico: "⧉", run: () => duplicate(w) },
               { label: "Удалить", ico: "×", danger: true, run: () => api.remove(w.id) },
             ]} />;
@@ -383,10 +435,9 @@ function GalleryTile({ name, ico, about, onPick, onDragOut }: { name: string; ic
   </button>;
 }
 
-type MenuItem = { label: string; ico?: string; danger?: boolean; run(): void };
 function Frame({ w, style, measure, dragging, dropped, notice, onHandle, onHandleKey, onResize, menu }: {
   w: Widget; style: React.CSSProperties; measure(n: HTMLElement | null): void | (() => void); dragging: boolean; dropped: boolean; notice?: string;
-  onHandle(e: React.PointerEvent): void; onHandleKey(e: React.KeyboardEvent): void; onResize?(e: React.PointerEvent): void; menu: MenuItem[];
+  onHandle(e: React.PointerEvent, open: () => void): void; onHandleKey(e: React.KeyboardEvent): void; onResize?(e: React.PointerEvent): void; menu: MenuItem[];
 }) {
   const api = useContextApi();
   const [form, setForm] = useState<string | null>(null);
@@ -401,20 +452,22 @@ function Frame({ w, style, measure, dragging, dropped, notice, onHandle, onHandl
   return <section ref={ref} data-wid={w.id} data-type={w.type} data-tone={tone} data-color={color} data-card={def.card || undefined}
     data-dragging={dragging || undefined} data-dropped={dropped || undefined} data-edit={api.edit || undefined}
     className={s.w} style={style} aria-label={name}>
-    {api.edit && <div className={s.bar}>
-      <button type="button" className={s.handle} data-handle title="Тяните, чтобы переставить. Стрелки на клавиатуре тоже двигают" aria-label={`Переместить виджет «${name}»`}
-        onPointerDown={onHandle} onKeyDown={onHandleKey}>
-        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="5.5" cy="3.5" r="1.3" /><circle cx="10.5" cy="3.5" r="1.3" /><circle cx="5.5" cy="8" r="1.3" /><circle cx="10.5" cy="8" r="1.3" /><circle cx="5.5" cy="12.5" r="1.3" /><circle cx="10.5" cy="12.5" r="1.3" /></svg>
-      </button>
-      <span className={s.barName}>{name}</span>
+    {/* Gutter handle on the left: drag it to move the widget, press it for the widget menu. */}
+    {api.edit && <button type="button" className={s.handle} data-handle title="Тяните, чтобы переставить. Нажмите, чтобы открыть меню"
+      aria-label={`Переместить или изменить виджет «${name}»`} aria-haspopup="menu" aria-expanded={!!more}
+      onPointerDown={(e) => { const n = e.currentTarget; onHandle(e, () => setMore(n)); }}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMore(e.currentTarget); } else onHandleKey(e); }}>
+      <svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="2.5" cy="3" r="1.4" /><circle cx="7.5" cy="3" r="1.4" /><circle cx="2.5" cy="8" r="1.4" /><circle cx="7.5" cy="8" r="1.4" /><circle cx="2.5" cy="13" r="1.4" /><circle cx="7.5" cy="13" r="1.4" /></svg>
+    </button>}
+    {/* Pill with the widget's own actions; none, no pill. */}
+    {actions.length > 0 && <div className={s.bar}>
       {actions.map((a) => a.swatch
         ? <button key={a.label} type="button" className={s.sw} data-color={a.swatch} aria-pressed={a.on} title={a.title} aria-label={a.title ?? a.label} onPointerDown={(e) => e.preventDefault()} onClick={a.run} />
-        : <button key={a.label} type="button" className={s.barTxt} aria-pressed={a.on} title={a.title} onPointerDown={(e) => e.preventDefault()} onClick={a.run}>{a.label}</button>)}
-      <button type="button" className={s.barBtn} title="Ещё" aria-label="Действия с виджетом" onClick={(e) => setMore(e.currentTarget)}>⋯</button>
+        : <button key={a.label} type="button" aria-pressed={a.on} title={a.title} onPointerDown={(e) => e.preventDefault()} onClick={a.run}>{a.label}</button>)}
     </div>}
     <div className={s.body}><def.View w={w} form={form} setForm={setForm} frame={frame} /></div>
     {api.edit && onResize && <div className={s.rz} title="Потяните, чтобы изменить ширину" onPointerDown={onResize} />}
     {notice && <div className={s.notice} role="status">{notice}</div>}
-    {more && <Menu anchor={more} title="Виджет" items={menu} onClose={() => setMore(null)} />}
+    {more && <Menu anchor={more} title={name} items={menu} onClose={() => setMore(null)} />}
   </section>;
 }

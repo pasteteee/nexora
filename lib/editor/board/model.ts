@@ -14,7 +14,9 @@ export const COLS = 24, GAP = 16, MIN_SPAN = 4, NARROW = 680;
 export type LineType = "p" | "h1" | "h2" | "h3" | "li" | "ol" | "todo" | "quote" | "math";
 export type Line = { id: string; t: LineType; text?: string; src?: string; done?: boolean };
 export type WidgetType = "text" | "formula" | "note" | "diagram" | "image" | "source" | "fragment" | "plot" | "kanban" | "table" | "checklist" | "flash" | "quiz" | "deadlines" | "timer" | "callout" | "code" | "toc";
-export type Layout = { col: number; span: number; key: number };
+/** `beside`: this widget was dropped beside `id`, which then had `col`/`span`; `own` is this widget's span before. */
+export type Beside = { id: string; col: number; span: number; own: number };
+export type Layout = { col: number; span: number; key: number; beside?: Beside };
 
 export type KanbanCard = { id: string; text: string };
 export type KanbanCol = { id: string; title: string; cards: KanbanCard[] };
@@ -163,7 +165,9 @@ export function layoutOf(el: CanvasElement, type: WidgetType): Layout | null {
   const l = el.content.layout as Partial<Layout> | undefined;
   if (l && finite(l.col) && finite(l.span) && finite(l.key)) {
     const span = Math.max(MIN_SPAN, Math.min(COLS, Math.round(l.span)));
-    return { span, col: Math.max(0, Math.min(COLS - span, Math.round(l.col))), key: l.key };
+    const b = l.beside as Partial<Beside> | undefined;
+    const beside = b && typeof b.id === "string" && finite(b.col) && finite(b.span) && finite(b.own) ? { id: b.id, col: b.col, span: b.span, own: b.own } : undefined;
+    return { span, col: Math.max(0, Math.min(COLS - span, Math.round(l.col))), key: l.key, ...(beside ? { beside } : {}) };
   }
   void type;
   return null;
@@ -229,4 +233,17 @@ export function plural(n: number): string {
   if (n1 > 1 && n1 < 5) return "дня";
   if (n1 === 1) return "день";
   return "дней";
+}
+
+/** Slot beside a widget: the target narrows and the dragged widget takes the freed columns on that side. */
+export type Side = { id: string; left: boolean; col: number; span: number; tcol: number; tspan: number };
+/** `rel` is the pointer position across the target (0 = left edge, 1 = right edge). */
+export function sideSlot(t: { id: string; col: number; span: number }, span: number, rel: number): Side | null {
+  if (rel > 0.3 && rel < 0.7) return null;
+  const dw = Math.min(span, Math.floor(t.span / 2));
+  if (dw < MIN_SPAN || t.span - dw < MIN_SPAN) return null;
+  const left = rel <= 0.3;
+  if ((left ? t.col : COLS - t.col - t.span) >= dw) return null; // there is room already: normal placement handles it
+  return left ? { id: t.id, left, col: t.col, span: dw, tcol: t.col + dw, tspan: t.span - dw }
+    : { id: t.id, left, col: t.col + t.span - dw, span: dw, tcol: t.col, tspan: t.span - dw };
 }

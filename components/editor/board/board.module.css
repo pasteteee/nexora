@@ -62,15 +62,21 @@
 .body { position: relative; }
 
 /* floating toolbar above the widget: never takes space */
-.bar { position: absolute; left: -6px; bottom: calc(100% + 6px); display: flex; align-items: center; gap: 2px; padding: 3px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 22px -12px var(--shadow); z-index: 30; opacity: 0; pointer-events: none; transition: opacity .12s ease-out; white-space: nowrap; font-family: var(--f-ui); max-width: calc(100% + 12px); overflow-x: auto; scrollbar-width: none; }
-.w:hover > .bar, .w:focus-within > .bar { opacity: 1; pointer-events: auto; }
-.w[data-dragging] > .bar { opacity: 0; }
-.barName { font-size: 12px; color: var(--ink-3); padding: 0 6px 0 2px; }
-.bar button { border: 0; background: transparent; color: var(--ink-2); border-radius: 5px; height: 26px; min-width: 26px; padding: 0 6px; font: 500 12.5px var(--f-ui); cursor: pointer; display: grid; place-items: center; flex: none; }
+.handle { position: absolute; left: -24px; top: 2px; width: 22px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--ink-3); cursor: grab; touch-action: none; opacity: 0; transition: opacity .12s, background .12s, color .12s; z-index: 31; }
+.handle svg { width: 10px; height: 16px; fill: currentColor; }
+.w:hover > .handle, .handle:focus-visible, .handle[aria-expanded="true"] { opacity: 1; }
+.handle:hover { background: var(--hl); color: var(--ink); }
+.handle:active { cursor: grabbing; }
+.handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.w[data-dragging] > .handle { opacity: 0; }
+/* Pill of the widget's own actions above the top-right corner. It hides with a delay, so it does not vanish on the way to it. */
+.bar { position: absolute; right: -2px; bottom: calc(100% + 2px); display: flex; align-items: center; gap: 1px; padding: 3px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 18px -10px var(--shadow); z-index: 30; opacity: 0; visibility: hidden; transform: translateY(3px); transition: opacity .14s ease-out .35s, transform .14s ease-out .35s, visibility 0s linear .5s; white-space: nowrap; font-family: var(--f-ui); max-width: calc(100% + 4px); overflow-x: auto; scrollbar-width: none; }
+.bar::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px; }
+.w:hover > .bar, .w:focus-within > .bar { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; z-index: 32; }
+.w[data-dragging] > .bar { display: none; }
+.bar button { border: 0; background: transparent; color: var(--ink-2); border-radius: 7px; height: 26px; min-width: 26px; padding: 0 9px; font: 500 12.5px var(--f-ui); cursor: pointer; display: grid; place-items: center; flex: none; }
 .bar button:hover, .bar button[aria-pressed="true"] { background: var(--hl); color: var(--ink); }
 .bar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
-.handle { cursor: grab !important; touch-action: none; }
-.handle svg { width: 15px; height: 15px; fill: currentColor; }
 .bar .sw { min-width: 0; width: 18px; height: 18px; padding: 0; border-radius: 50%; border: 1px solid var(--line-strong); margin: 0 1px; }
 .bar .sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); }
 .sw[data-color="yellow"], .bar .sw[data-color="yellow"]:hover { background: var(--note-yellow); } .sw[data-color="pink"], .bar .sw[data-color="pink"]:hover { background: var(--note-pink); }
@@ -85,10 +91,6 @@
 
 /* quiet focus: no frame while writing; text widgets read as plain page text */
 .w[data-type="text"]:hover::after { border-color: transparent; }
-.w[data-type="text"] > .bar { background: transparent; border-color: transparent; box-shadow: none; opacity: 0; }
-.w[data-type="text"]:hover > .bar { opacity: .55; }
-.w[data-type="text"]:focus-within:not(:hover) > .bar { opacity: 0; pointer-events: none; }
-.w[data-type="text"] > .bar:hover, .w[data-type="text"] > .bar:focus-within { opacity: 1; pointer-events: auto; background: var(--paper); border-color: var(--line); }
 
 /* writing at the end */
 .end { min-height: 180px; margin-top: 8px; border-radius: var(--r-m); cursor: text; padding: 10px 2px; outline: none; }
@@ -348,7 +350,8 @@ input.dgL { width: 100%; border: 0; background: transparent; color: inherit; fon
 
 @media (max-width: 900px) { .bd { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); } }
 @media (max-width: 720px) { .rz { display: none; } .form { width: calc(100vw - 16px); } .tiles { grid-template-columns: 1fr; } }
-@media (hover: none) { .w > .bar { opacity: 1; pointer-events: auto; } .del { opacity: 1; } }
+@media (hover: none) { .handle { opacity: .5; } .del { opacity: 1; } }
+@media (max-width: 900px) { .handle { left: -18px; width: 16px; } }
 @media (prefers-reduced-motion: reduce) {
   .w, .ph, .progress i::after, .tmFg { transition: none; }
   .pop { animation: none; }

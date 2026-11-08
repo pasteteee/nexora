@@ -499,7 +499,7 @@ export const WIDGETS: Record<WidgetType, Def> = {
     { label: "Цвет", title: "Цвет выбранного узла", run: () => open("color") },
   ] },
   fragment: { View: SourceView, card: true },
-  text: { View: ({ w }) => <TextWidget w={w} />, actions: (w, api) => [{ label: "+ строка", title: "Добавить строку в конец", run: () => { const lines = linesOf(w.el), l = { id: uid(), t: "p" as const, text: "" }; api.setLines(w, [...lines, l]); api.focus({ id: w.id, lid: l.id }); } }] },
+  text: { View: ({ w }) => <TextWidget w={w} /> },
   formula: { View: FormulaView },
   plot: { View: PlotView, card: true, actions: (_w, _a, open) => [{ label: "Изменить функцию", run: () => open("plot") }] },
   kanban: { View: KanbanView, card: true, actions: (w, api) => [{ label: "+ колонка", run: () => set(api, w, "kanban", (d) => ({ ...d, cols: [...d.cols, { id: uid(), title: "Новая", cards: [] }] })) }] },

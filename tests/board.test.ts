@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { compileFn, insertMathKey, toTex } from "@/lib/editor/board/math";
-import { COLS, linesToMarkdown, markdownToLines, pack, pageWidgets, summary, widgetType, defaultData } from "@/lib/editor/board/model";
+import { COLS, linesToMarkdown, markdownToLines, pack, pageWidgets, summary, widgetType, defaultData, sideSlot } from "@/lib/editor/board/model";
 import type { CanvasElement } from "@/lib/types";
 
 const el = (id: string, type: CanvasElement["type"], content: Record<string, unknown> = {}, y = 0): CanvasElement => ({
@@ -76,5 +76,17 @@ describe("виджеты страницы", () => {
   it("у каждого виджета есть текст для поиска и публикации", () => {
     expect(summary("kanban", defaultData("kanban"))).toContain("Надо");
     expect(summary("checklist", { title: "ДЗ", items: [{ id: "1", text: "задача", done: true }] })).toContain("- [x] задача");
+  });
+});
+
+describe("sideSlot", () => {
+  it("narrows a full-width widget and takes its left or right part", () => {
+    expect(sideSlot({ id: "t", col: 0, span: 24 }, 8, 0.1)).toEqual({ id: "t", left: true, col: 0, span: 8, tcol: 8, tspan: 16 });
+    expect(sideSlot({ id: "t", col: 0, span: 24 }, 16, 0.9)).toEqual({ id: "t", left: false, col: 12, span: 12, tcol: 0, tspan: 12 });
+  });
+  it("ignores the middle, free room and too narrow targets", () => {
+    expect(sideSlot({ id: "t", col: 0, span: 24 }, 8, 0.5)).toBeNull();
+    expect(sideSlot({ id: "t", col: 0, span: 12 }, 8, 0.9)).toBeNull();
+    expect(sideSlot({ id: "t", col: 0, span: 6 }, 8, 0.1)).toBeNull();
   });
 });
