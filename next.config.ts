@@ -50,6 +50,7 @@ const capabilityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  distDir: process.env.NEXORA_E2E === "1" ? ".next-e2e" : ".next",
   serverExternalPackages: ["pdfjs-dist", "@napi-rs/canvas"],
   // PDF.js loads its worker by a runtime path; keep it in the processing function.
   outputFileTracingIncludes: {
