@@ -87,7 +87,7 @@ function requireWs(db: Db, wsId: string, need: "read" | "edit" | "owner") {
 }
 function requireCanvas(db: Db, canvasId: string, need: "read" | "edit") {
   const c = db.canvases.find((x) => x.id === canvasId);
-  if (!c) throw new ApiError("Не найдено", "not_found");
+  if (!c || c.deletedAt) throw new ApiError("Не найдено", "not_found");
   requireWs(db, c.workspaceId, need);
   return c;
 }
@@ -231,6 +231,7 @@ export const localData: DataApi = {
   },
   async listTrash() {
     const db = load();
+    purgeExpired(db);
     const u = me(db);
     return db.workspaces.filter((w) => w.deletedAt && w.ownerId === u.id).map((w) => card(db, w, u.id));
   },
@@ -263,7 +264,11 @@ export const localData: DataApi = {
     tx((db) => { const { ws } = requireWs(db, id, "owner"); ws.deletedAt = now(); });
   },
   async restoreWorkspace(id) {
-    tx((db) => { const { ws } = requireWs(db, id, "owner"); ws.deletedAt = null; ws.updatedAt = now(); });
+    tx((db) => {
+      const { ws } = requireWs(db, id, "owner");
+      if (ws.deletedAt && Date.parse(ws.deletedAt) <= Date.now() - TRASH_DAYS * 864e5) throw new ApiError("Не найдено", "not_found");
+      ws.deletedAt = null; ws.updatedAt = now();
+    });
   },
 
   async listCanvases(workspaceId) {
@@ -273,6 +278,7 @@ export const localData: DataApi = {
   },
   async listCanvasTrash(workspaceId) {
     const db = load();
+    purgeExpired(db);
     requireWs(db, workspaceId, "read");
     return db.canvases.filter((c) => c.workspaceId === workspaceId && c.deletedAt);
   },
@@ -314,7 +320,7 @@ export const localData: DataApi = {
   async restoreCanvas(id) {
     tx((db) => {
       const c = db.canvases.find((x) => x.id === id);
-      if (!c) throw new ApiError("Не найдено", "not_found");
+      if (!c || (c.deletedAt && Date.parse(c.deletedAt) <= Date.now() - TRASH_DAYS * 864e5)) throw new ApiError("Не найдено", "not_found");
       requireWs(db, c.workspaceId, "edit");
       c.deletedAt = null;
     });
@@ -322,7 +328,13 @@ export const localData: DataApi = {
   async reorderCanvases(workspaceId, orderedIds) {
     tx((db) => {
       requireWs(db, workspaceId, "edit");
-      orderedIds.forEach((id, i) => { const c = db.canvases.find((x) => x.id === id); if (c) c.position = i + 1; });
+      if (new Set(orderedIds).size !== orderedIds.length) throw new ApiError("Повторяющиеся страницы", "invalid");
+      const ordered = orderedIds.map(id => {
+        const c = requireCanvas(db, id, "edit");
+        if (c.workspaceId !== workspaceId) throw new ApiError("Не найдено", "not_found");
+        return c;
+      });
+      ordered.forEach((c, i) => { c.position = i + 1; });
     });
   },
 
@@ -338,6 +350,10 @@ export const localData: DataApi = {
       for (const e of els) {
         if (!checked.has(e.canvasId)) { requireCanvas(db, e.canvasId, "edit"); checked.add(e.canvasId); }
         const i = db.elements.findIndex((x) => x.id === e.id);
+        if (i >= 0) {
+          requireCanvas(db, db.elements[i].canvasId, "edit");
+          if (db.elements[i].canvasId !== e.canvasId) throw new ApiError("Не найдено", "not_found");
+        }
         const next = { ...e, updatedAt: now() };
         if (i >= 0) db.elements[i] = next; else db.elements.push(next);
       }

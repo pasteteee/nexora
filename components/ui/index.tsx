@@ -1,6 +1,6 @@
 "use client";
 import {
-  forwardRef, useEffect, useLayoutEffect, useRef, useState,
+  forwardRef, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore,
   type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -50,10 +50,13 @@ export function Button({ variant = "primary", className, ...rest }: BtnProps) {
 
 /* ---------- Field ---------- */
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & { error?: string; hint?: string };
+const subscribeToHydration = () => () => {};
 export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field({ error, hint, ...rest }, ref) {
+  // A pre-hydration keystroke would be overwritten by the controlled React value.
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   return (
     <label className={s.field}>
-      <input ref={ref} className={s.input} aria-invalid={!!error} {...rest} />
+      <input ref={ref} className={s.input} aria-invalid={!!error} {...rest} disabled={!hydrated || rest.disabled} />
       {error ? <span className={s.err}>{error}</span> : hint ? <span className={s.hint}>{hint}</span> : null}
     </label>
   );
