@@ -1,0 +1,3 @@
+tests/fixtures/*.pdf binary
+tests/fixtures/*.pptx binary
+tests/fixtures/*.png binary

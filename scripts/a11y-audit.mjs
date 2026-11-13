@@ -34,7 +34,7 @@ const elements = kinds.map((k, i) => {
   if (k === "note") return { ...base, type: "note", content: { text: "Заметка", layout }, style: { color: "yellow" } };
   return { ...base, type: "note", content: { widget: k, text: k, layout }, style: { color: "gray" } };
 });
-const slug = "a11y-" + uuid().slice(0, 8);
+const slug = "a11y-" + uuid().replaceAll("-", "");
 const db = {
   users: [user], tokens: {}, workspaces: [ws], members: [{ workspaceId: ws.id, userId: user.id, role: "owner" }], canvases: [canvas], elements, sources: [],
   invitations: [], publications: [{ canvasId: canvas.id, workspaceId: ws.id, slug, isActive: true, publishedAt: at }],
@@ -48,8 +48,8 @@ const screens = [
   { name: "Редактор", path: editor, ready: "[data-wid]" },
   { name: "Редактор, тёмная", path: editor, ready: "[data-wid]", scheme: "dark" },
   ...["grid", "lined", "dots", "kraft", "night", "board"].map((theme) => ({ name: `Редактор, тема ${theme}`, path: editor, ready: "[data-wid]", theme })),
-  { name: "Публичная страница", path: `/p/${slug}`, auth: false },
-  { name: "Публичная, телефон", path: `/p/${slug}`, auth: false, mobile: true },
+  { name: "Публичная страница", path: `/p/${slug}`, auth: false, ready: "article" },
+  { name: "Публичная, телефон", path: `/p/${slug}`, auth: false, mobile: true, ready: "article" },
   { name: "Профиль", path: "/app/profile" },
 ];
 
@@ -73,7 +73,7 @@ async function audit(page, name, skip = []) {
 /** Состояния редактора, которые открываются с клавиатуры. */
 const STATES = [
   ["меню виджета", async (p) => { await p.locator("[data-wid] [data-handle]").first().focus(); await p.keyboard.press("Enter"); }],
-  ["галерея виджетов", async (p) => { await p.getByRole("button", { name: "+ Виджет" }).click(); }],
+  ["галерея виджетов", async (p) => { await p.getByRole("button", { name: "Добавить виджет", exact: true }).click(); }],
   ["меню «/» в тексте", async (p) => { const t = p.locator("[data-type=text] textarea").last(); await t.click(); await p.keyboard.press("End"); await p.keyboard.press("Enter"); await p.keyboard.type("/"); }],
   ["редактор формулы", async (p) => { await p.locator("[data-type=formula] [data-math]").first().click(); }],
   ["диалог «Поделиться»", async (p) => { await p.getByRole("button", { name: /Поделиться/ }).click(); }],
