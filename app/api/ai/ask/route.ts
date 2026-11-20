@@ -1,4 +1,4 @@
-import { limits } from "@/lib/config";
+import { aiAccess, AI_ADMIN_ONLY } from "@/lib/ai/access";
 import {
   access,
   admin,
@@ -32,6 +32,8 @@ export async function POST(request: Request) {
     )
       throw new HttpError(400, "Проверьте запрос (до 2000 символов)");
     const { sb, user } = await access(workspaceId, true);
+    const ai = aiAccess(user);
+    if (!ai.enabled) throw new HttpError(403, AI_ADMIN_ONLY);
     const { data: canvas } = await sb
       .from("canvases")
       .select("id")
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
         p_workspace_id: workspaceId,
         p_user_id: user.id,
         p_request_type: action,
-        p_limit: limits.aiRequestsPerHour,
+        p_limit: ai.perHour,
       },
     );
     if (reserveError)

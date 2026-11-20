@@ -29,6 +29,7 @@ describe("фото в тетрадь: API", () => {
     process.env.EMBEDDINGS_PROVIDER = "gemini";
     process.env.EMBEDDINGS_API_KEY = "test-key";
     delete process.env.GEMINI_API_KEY;
+    process.env.ADMIN_USER_IDS = "me";
   });
 
   it("отправляет фото в Gemini и возвращает проверенные блоки", async () => {
@@ -47,7 +48,7 @@ describe("фото в тетрадь: API", () => {
     const body = JSON.parse(String(init.body));
     expect(body.contents[0].parts[0].inlineData).toEqual({ mimeType: "image/jpeg", data: "AQID" });
     expect(body.generationConfig.responseMimeType).toBe("application/json");
-    expect(mocks.reserve).toHaveBeenCalledWith(workspaceId, "me", "photo_import");
+    expect(mocks.reserve).toHaveBeenCalledWith(workspaceId, "me", "photo_import", 1000);
     expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ status: "completed" }));
   });
 
@@ -66,7 +67,7 @@ describe("фото в тетрадь: API", () => {
     const worker = { from: () => ({ update: () => ({ eq: async () => ({}) }) }) };
     mocks.reserve.mockReset().mockRejectedValueOnce(new HttpError(503, "Сервис временно недоступен")).mockResolvedValueOnce({ worker, logId: "log" });
     expect((await POST(request())).status).toBe(200);
-    expect(mocks.reserve).toHaveBeenLastCalledWith(workspaceId, "me", "explain");
+    expect(mocks.reserve).toHaveBeenLastCalledWith(workspaceId, "me", "explain", 1000);
     mocks.reserve.mockReset().mockRejectedValue(new HttpError(429, "Лимит запросов за час исчерпан"));
     expect((await POST(request())).status).toBe(429);
     expect(mocks.reserve).toHaveBeenCalledTimes(1);
@@ -96,6 +97,16 @@ describe("фото в тетрадь: API", () => {
     const res = await POST(request());
     expect(res.status).toBe(503);
     expect((await res.json()).error).toMatch(/ключ Gemini/);
+    expect(mocks.reserve).not.toHaveBeenCalled();
+  });
+
+  it("обычному пользователю распознавание закрыто: 403 без обращения к Gemini и без списания лимита", async () => {
+    process.env.ADMIN_USER_IDS = "someone-else";
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    const res = await POST(request());
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toMatch(/только администратору/);
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(mocks.reserve).not.toHaveBeenCalled();
   });
 });

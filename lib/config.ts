@@ -6,6 +6,9 @@ export const limits = {
   workspaceMaxSources: num(process.env.WORKSPACE_MAX_SOURCES, 100),
   workspaceMaxBytes: num(process.env.WORKSPACE_MAX_MB, 500) * 1024 * 1024,
   aiRequestsPerHour: num(process.env.AI_REQUESTS_PER_HOUR, 30),
+  /** ИИ-помощник и фото: администраторам — страховочный потолок, остальным по умолчанию 0 (выключено). */
+  aiAdminRequestsPerHour: num(process.env.AI_ADMIN_REQUESTS_PER_HOUR, 1000),
+  aiUserRequestsPerHour: num(process.env.AI_USER_REQUESTS_PER_HOUR, 0),
   searchMinSimilarity: num(process.env.SEARCH_MIN_SIMILARITY, 0.3),
 };
 

@@ -9,13 +9,14 @@ export async function reserveOperation(
   workspaceId: string,
   userId: string,
   type: string,
+  limit: number = limits.aiRequestsPerHour,
 ) {
   const worker = admin();
   const { data, error } = await worker.rpc("reserve_ai_request", {
     p_workspace_id: workspaceId,
     p_user_id: userId,
     p_request_type: type,
-    p_limit: limits.aiRequestsPerHour,
+    p_limit: limit,
   });
   if (error)
     throw new HttpError(
