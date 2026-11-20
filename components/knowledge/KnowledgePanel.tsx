@@ -22,6 +22,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import s from "./knowledge.module.css";
 import { SourcePreview } from "./SourcePreview";
 import { scrollBehavior } from "@/lib/motion";
+import { useAiAccess } from "@/lib/ai/useAiAccess";
 
 type Match = {
   id: string;
@@ -77,6 +78,8 @@ function KnowledgePanelContent({
     onOpenChange?.(value);
   };
   const [tab, setTab] = useState<"materials" | "ai">("materials");
+  const aiAccess = useAiAccess();
+  const aiLocked = aiAccess !== null && !aiAccess.enabled;
   const [sources, setSources] = useState<Source[]>([]);
   const [preview, setPreview] = useState<Source | null>(null);
   const [query, setQuery] = useState("");
@@ -186,7 +189,7 @@ function KnowledgePanelContent({
   }
   async function ask(event: React.FormEvent) {
     event.preventDefault();
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || aiLocked) return;
     const controller = new AbortController();
     abort.current = controller;
     setBusy(true);
@@ -559,14 +562,19 @@ function KnowledgePanelContent({
                         Остановить
                       </button>
                     ) : (
-                      <button disabled={!canEdit || demoMode || !prompt.trim()}>
+                      <button disabled={!canEdit || demoMode || aiLocked || !prompt.trim()}>
                         <ArrowUp size={16} />
                         Спросить
                       </button>
                     )}
                   </div>
                 </form>
-                {!canEdit && (
+                {aiLocked && (
+                  <p className={s.notice} role="status">
+                    {aiAccess.reason}
+                  </p>
+                )}
+                {!canEdit && !aiLocked && (
                   <p className={s.notice}>
                     ИИ доступен владельцу и редакторам тетради.
                   </p>

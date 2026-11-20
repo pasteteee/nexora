@@ -52,6 +52,7 @@ function chain(result: unknown) {
 describe("assistant API isolation and streaming", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    process.env.ADMIN_USER_IDS = "me";
     mocks.access.mockResolvedValue({
       user: { id: "me" },
       sb: { from: vi.fn(() => chain({ data: { id: canvasId } })) },
@@ -153,6 +154,23 @@ describe("assistant API isolation and streaming", () => {
     });
     expect((await POST(request())).status).toBe(429);
     expect(mocks.search).not.toHaveBeenCalled();
+  });
+  it("closes the assistant to non-admins before any database or provider work", async () => {
+    process.env.ADMIN_USER_IDS = "someone-else";
+    const rpc = vi.fn();
+    mocks.admin.mockReturnValue({ rpc });
+    const response = await POST(request());
+    expect(response.status).toBe(403);
+    expect((await response.json()).error).toMatch(/только администратору/);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(mocks.search).not.toHaveBeenCalled();
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
+  it("gives admins the admin ceiling, not the shared hourly limit", async () => {
+    const rpc = vi.fn(async () => ({ data: "request-id" }));
+    mocks.admin.mockReturnValue({ rpc, from: vi.fn(() => chain({ error: null })) });
+    await (await POST(request())).text();
+    expect(rpc).toHaveBeenCalledWith("reserve_ai_request", expect.objectContaining({ p_user_id: "me", p_limit: 1000 }));
   });
   it("reports provider failure as a recoverable streamed error", async () => {
     mocks.generate.mockImplementation(async function* () {

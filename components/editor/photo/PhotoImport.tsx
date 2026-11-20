@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MathView } from "@/components/editor/board/MathLine";
 import { data, demoMode } from "@/lib/data";
+import { useAiAccess } from "@/lib/ai/useAiAccess";
 import { useUi } from "@/lib/editor/ui";
 import { compileFn } from "@/lib/editor/board/math";
 import { BLOCK_LABEL, PHOTO_HINTS, plotFn, type PhotoBlock, type PhotoHint } from "@/lib/photo/blocks";
@@ -39,6 +40,8 @@ export function PhotoImport({ onClose, onInsert }: { onClose(): void; onInsert(b
   const scanBlob = useRef<Blob | null>(null);
   const abort = useRef<AbortController | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const aiAccess = useAiAccess();
+  const aiLocked = aiAccess !== null && !aiAccess.enabled;
 
   useEffect(() => {
     const d = dlg.current;
@@ -101,6 +104,7 @@ export function PhotoImport({ onClose, onInsert }: { onClose(): void; onInsert(b
     setError("");
     if (demoMode) { setError("Распознавание работает в рабочей версии после входа. В демо фото можно вставить картинкой"); return; }
     if (!ws) { setError("Откройте тетрадь, чтобы распознать фото"); return; }
+    if (aiLocked) { setError(`${aiAccess.reason}. Фото можно вставить картинкой`); return; }
     setStep("busy");
     const ctl = new AbortController();
     abort.current = ctl;
@@ -210,12 +214,13 @@ export function PhotoImport({ onClose, onInsert }: { onClose(): void; onInsert(b
               {PHOTO_HINTS.map(([h, name]) => <button key={h} type="button" role="radio" aria-checked={hint === h} disabled={step === "busy"} onClick={() => setHint(h)}>{name}</button>)}
             </div>
           </section>
+          {aiLocked && !error && <p className={s.small} role="status">{aiAccess.reason}. Фото можно вставить картинкой.</p>}
           {error && <p className={s.err} role="alert">{error}</p>}
           <div className={s.actions}>
             {step === "busy"
               ? <><span className={s.busy} role="status"><i aria-hidden="true" />Распознаю, до 30 секунд…</span>
                   <button type="button" className={s.secondary} onClick={() => abort.current?.abort()}>Отменить</button></>
-              : <><button type="button" className={s.primary} onClick={() => void recognize()}>Распознать</button>
+              : <><button type="button" className={s.primary} onClick={() => void recognize()} disabled={aiLocked} title={aiLocked ? aiAccess.reason ?? undefined : undefined}>Распознать</button>
                   <button type="button" className={s.ghost} onClick={() => void insert(true)} disabled={inserting}>Вставить как картинку</button>
                   <button type="button" className={s.ghost} onClick={() => { setSrc(null); setStep("pick"); setError(""); }}>Другое фото</button></>}
           </div>
