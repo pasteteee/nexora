@@ -79,6 +79,13 @@ npx --yes supabase@2.121.0 db dump --linked --data-only --use-copy -f backup/dat
 Правки при этом **сохраняются** в базу, только не приходят другим сразу. Пользователь видит
 «Нет связи»; после переподключения страница и роль дозагружаются из БД.
 
+Если канал отказал при подключении (холодный старт Realtime: инициализация tenant,
+`MissingPartition` в логах), клиент сам удаляет его и подключается заново со свежим JWT через
+0,25 → 0,5 → 1 → 2 → 5 с (дальше каждые 5 с). «В сети» появляется только когда подключены и
+изменения, и присутствие; после каждого переподключения участник снова объявляет себя.
+Код — `lib/realtime/supabase.ts`, тест — `tests/realtime-recovery.test.ts`. Проверка на стенде:
+`npm run test:storage:remote` печатает отдельной строкой, сколько было повторных подключений.
+
 Проверить: Supabase → Logs → Realtime; применена ли `20261108210000_nexora_realtime.sql`
 (`migration list --linked`); есть ли политики на `realtime.messages`:
 `select policyname from pg_policies where schemaname = 'realtime';`.

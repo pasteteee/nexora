@@ -86,7 +86,7 @@ docs/           документация (ниже)
 | [Окружения и почта](docs/environments.md) | Storage, Gmail SMTP, разделение ключей |
 | [Материалы и ИИ](docs/sprint-5.md), [совместная работа](docs/collaboration.md), [документный редактор](docs/document-editor.md) | устройство отдельных функций |
 | [Слой данных](docs/data-layer.md), [дизайн-система](docs/design.md), [ADR](docs/adr/) | разработчикам |
-| [Тест-план](docs/test-plan.md), [итоги спринтов](docs/sprints/) | QA и команде |
+| [Тест-план](docs/test-plan.md), [итоги спринтов](docs/sprints/), [итог спринта 7](docs/sprints/sprint-7.md) | QA и команде |
 
 ## Ветки
 

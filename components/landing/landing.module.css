@@ -1,8 +1,8 @@
 /* Лендинг: асимметричный герой (текст слева, живой лист тетради справа), дальше спокойные полосы-разделы.
    Токены лендинга живут на .page, темы листа повторяют data-nb из редактора. */
 .page {
-  --l-bg: #eceeed; --l-surface: #f8f8f6; --l-ink: #1c1e21; --l-ink-2: #4e535a; --l-ink-3: #80858d; --l-line: #d9dcdc;
-  --l-accent: #1f4e8c; --l-accent-ink: #ffffff; --l-accent-soft: #dde6f2; --l-red: #d6483c;
+  --l-bg: #eceeed; --l-surface: #f8f8f6; --l-ink: #1c1e21; --l-ink-2: #4e535a; --l-ink-3: #62676e; --l-line: #d9dcdc;
+  --l-accent: #1f4e8c; --l-accent-ink: #ffffff; --l-accent-soft: #dde6f2; --l-red: #b03a2e;
   --f-display: var(--font-literata), Georgia, "Times New Roman", serif;
   --f-text: var(--font-golos), system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: var(--font-jetbrains), ui-monospace, Menlo, Consolas, monospace;
