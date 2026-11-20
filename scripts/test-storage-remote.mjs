@@ -60,32 +60,56 @@ async function main() {
     const canvas = data(await owner.from("canvases").insert({ workspace_id: workspaceId, name: "QA page" }).select("id").single(), "Подготовка тестовой страницы");
     const peers = ["owner", "editor", "viewer"], live = [], cursorReceipts = new Set(), updates = new Set();
     try {
-      const subscribe = channel => new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error("Realtime: канал не подключился за 10 с")), 10_000);
+      // Восстановление как в приложении (lib/realtime/supabase.ts): отказ первого join → новый канал со свежим JWT.
+      // Повторы не скрываются: каждое пересоздание попадает в отчёт отдельной строкой.
+      const REJOIN_DELAYS_MS = [250, 500, 1000, 2000, 5000];
+      const rejoins = [];
+      const joinOnce = channel => new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("TIMED_OUT")), 10_000);
         channel.subscribe((status, error) => {
           if (status === "SUBSCRIBED") { clearTimeout(timer); resolve(); }
-          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") { clearTimeout(timer); reject(new Error(`Realtime: ${status}: ${String(error?.message ?? "канал недоступен").replace(/eyJ[\w.-]+|sb_[\w-]+/g, "[redacted]").slice(0, 250)}`)); }
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") { clearTimeout(timer); reject(new Error(`${status}: ${String(error?.message ?? "канал недоступен").replace(/eyJ[\w.-]+|sb_[\w-]+/g, "[redacted]").slice(0, 250)}`)); }
         });
       });
+      async function subscribe(client, make, label) {
+        const start = performance.now();
+        for (let attempt = 0; ; attempt++) {
+          await client.realtime.setAuth();
+          const channel = make();
+          try {
+            await joinOnce(channel);
+            if (attempt > 0) rejoins.push({ label, attempts: attempt + 1, elapsedMs: Math.round(performance.now() - start) });
+            return channel;
+          } catch (error) {
+            await client.removeChannel(channel);
+            if (attempt >= REJOIN_DELAYS_MS.length) throw new Error(`Realtime: ${label}: ${error.message}`);
+            await pause(REJOIN_DELAYS_MS[attempt]);
+          }
+        }
+      }
       async function delivered(predicate, label) {
         const start = performance.now();
         while (!predicate() && performance.now() - start < 2000) await pause(20);
         checks.push({ label, passed: predicate(), elapsedMs: Math.round(performance.now() - start) });
       }
-      for (const role of peers) {
+      const joinPeer = async role => {
         const client = actors[role].client;
-        await client.realtime.setAuth();
-        const presence = client.channel(`page:${canvas.id}:live`, { config: { private: true, presence: { key: role, enabled: true } } })
+        const presence = await subscribe(client, () => client.channel(`page:${canvas.id}:live`, { config: { private: true, presence: { key: role, enabled: true } } })
           .on("presence", { event: "sync" }, () => {})
-          .on("broadcast", { event: "cursor" }, ({ payload }) => cursorReceipts.add(`${payload.sender}:${role}`));
-        const changed = client.channel(`page:${canvas.id}`, { config: { private: true } })
-          .on("broadcast", { event: "element" }, ({ payload }) => { if (payload.op === "upsert") updates.add(role); });
+          .on("broadcast", { event: "cursor" }, ({ payload }) => cursorReceipts.add(`${payload.sender}:${role}`)), `page:live ${role}`);
+        await subscribe(client, () => client.channel(`page:${canvas.id}`, { config: { private: true } })
+          .on("broadcast", { event: "element" }, ({ payload }) => { if (payload.op === "upsert") updates.add(role); }), `page ${role}`);
         live.push(presence);
-        await Promise.all([subscribe(presence), subscribe(changed)]);
-      }
-      for (let i = 0; i < peers.length; i++) check(await live[i].track({ userId: actors[peers[i]].id, name: peers[i] }) === "ok", `Presence ${peers[i]} подтверждён сервером`);
+        check(await presence.track({ userId: actors[role].id, name: role }) === "ok", `Presence ${role} подтверждён сервером`);
+      };
+      await joinPeer("owner");
+      await joinPeer("editor");
+      await delivered(() => live.every(channel => Object.keys(channel.presenceState()).length === 2), "Два участника видят presence не позднее 2 с");
+      checks.at(-1).participantCounts = live.map(channel => Object.keys(channel.presenceState()).length);
+      await joinPeer("viewer");
       await delivered(() => live.every(channel => Object.keys(channel.presenceState()).length === 3), "Три участника видят presence не позднее 2 с");
       checks.at(-1).participantCounts = live.map(channel => Object.keys(channel.presenceState()).length);
+      checks.push({ label: `Первое подключение каналов: повторных подключений ${rejoins.length}`, passed: true, rejoins });
       for (let i = 0; i < peers.length; i++) {
         await live[i].send({ type: "broadcast", event: "cursor", payload: { sender: peers[i], cursor: { x: 12, y: 34 } } });
         await delivered(() => peers.filter(role => role !== peers[i]).every(role => cursorReceipts.has(`${peers[i]}:${role}`)), "Курсор участника доставляется остальным не позднее 2 с");
